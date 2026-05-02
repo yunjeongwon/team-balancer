@@ -1,6 +1,6 @@
 from typing import TypedDict, Optional
 
-class State(TypedDict):
+class TeamState(TypedDict):
     # Input
     raw_input: str
     members: list[str]
