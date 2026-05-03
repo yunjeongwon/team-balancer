@@ -7,7 +7,12 @@ def input_node(state: TeamState) -> TeamState:
     if len(members) % 2 == 1:
         members.append('공석')
 
+    message = f"입력: {raw_input}\n split 완료"
+
+    print(message)
+
     return {
+        "messages": [message],
         "raw_input": state["raw_input"],
         "members": members,
     }

@@ -49,7 +49,12 @@ class TeamSchema(BaseModel):
 
     res = structured_llm.invoke(messages)
 
+    message = f"팀 생성 완료"
+
+    print(message)
+
     return {
+        "messages": [message],
         "team_a": res.team_a,
         "team_b": res.team_b,
         "score_diff": res.score_diff,

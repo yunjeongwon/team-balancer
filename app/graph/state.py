@@ -1,6 +1,9 @@
-from typing import TypedDict, Optional
+from typing import Annotated, TypedDict, Optional
+from langgraph.graph import add_messages
 
 class TeamState(TypedDict):
+    messages: Annotated[list[str], add_messages]
+
     # Input
     raw_input: str
     members: list[str]

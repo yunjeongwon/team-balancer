@@ -1,3 +1,4 @@
+from app.graph.nodes.formatter_node import formmater_node
 from app.graph.nodes.input_node import input_node
 from app.graph.nodes.score_fetch_node import score_fetch_node
 from app.graph.nodes.team_generator_node import team_generator_node
@@ -16,6 +17,7 @@ def graph_builder():
     builder.add_node("input", input_node)
     builder.add_node("score_fetch", score_fetch_node)
     builder.add_node("team_generator", lambda state: team_generator_node(state, structured_llm))
+    # builder.add_node("formmater", lambda state: formmater_node(state, llm))
 
     builder.add_edge(START, "input")
     builder.add_edge("input", "score_fetch")

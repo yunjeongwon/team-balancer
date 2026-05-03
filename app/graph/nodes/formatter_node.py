@@ -45,8 +45,8 @@ team_b:
         """)
         ]
 
-    llm.invoke(prompt)
+    res = llm.invoke(prompt)
 
     return {
-        
+        "messages": [res]
     }

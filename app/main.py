@@ -4,40 +4,29 @@ from app.graph.builder import graph_builder
 
 load_dotenv()
 
-# Streamlit UI
 st.title("Team Balancer")
 
-# Input field
-user_input = st.text_input("팀원 이름을 입력하세요 (띄어쓰기로 구분)")
+# user_input = st.text_input("팀원 이름을 입력하세요 (띄어쓰기로 구분)")
+user_input = st.chat_input("팀원 이름을 입력하세요 (띄어쓰기로 구분)")
 
-# 버튼 클릭 시 실행
-if st.button("팀 생성"):
-    if not user_input.strip():
-        st.warning("입력을 먼저 해주세요.")
-    else:
-        msg = st.info(f"입력: '{user_input}' 검증 중 ..")
-        app = graph_builder()
-        config = {
-            "configurable": {
-                "thread_id": "user-1"
-            }
+if user_input:
+    with st.chat_message("human"):
+        st.write(user_input)
+    msg = st.info("팀 생성 중 ..")
+    app = graph_builder()
+    config = {
+        "configurable": {
+            "thread_id": "user-1"
         }
-        res = app.invoke({
-            "raw_input": user_input
-        }, config=config)
+    }
 
-        print(res)
+    res = app.invoke(
+        {"raw_input": user_input},
+        config=config,
+    )
 
-        # 작업 끝나면
-        # msg.empty()
+    with st.chat_message("assistant"):
+        st.markdown(f"🔵 블루팀\n\n{' '.join(res['team_a'])}")
+        st.markdown(f"🟡 골드팀\n\n{' '.join(res['team_b'])}")
 
-        # graph = build_graph()
-
-        # # LangGraph 실행
-        # result = graph.invoke({
-        #     "raw_input": user_input
-        # })
-
-        # # 결과 출력
-        # st.subheader("결과")
-        # st.write(result)
+    msg.empty()
