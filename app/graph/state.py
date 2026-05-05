@@ -1,12 +1,14 @@
-from typing import Annotated, TypedDict, Optional
+from typing import Annotated, Literal, TypedDict, Optional
 from langgraph.graph import add_messages
 
 class TeamState(TypedDict):
-    messages: Annotated[list[str], add_messages]
+    messages: Annotated[list[dict], add_messages]
 
     # Input
     raw_input: str
     members: list[str]
+    must_link_pairs: list[tuple[str, str]]
+    cannot_link_pairs: list[tuple[str, str]]
 
     # Data
     member_scores: dict[str, int]
@@ -17,6 +19,11 @@ class TeamState(TypedDict):
     team_b: list[str]
     score_diff: int
 
+    # Eval
+    evaluation_status: Literal["PASS", "FAIL"]
+    evaluation_reason: str
+    evaluation_count: int
+
     # Control
     approved: bool
     retry_count: int
@@ -25,5 +32,5 @@ class TeamState(TypedDict):
     # Feedback
     feedback: Optional[str]
 
-    # Debug / Trace (포트폴리오 중요)
+    # Debug / Trace
     history: list[dict]  # 각 시도 결과 저장
