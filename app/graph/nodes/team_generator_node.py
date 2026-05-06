@@ -1,49 +1,73 @@
 from langchain_core.messages import HumanMessage, SystemMessage
 from app.graph.state import TeamState
+from app.utils.format_groups import format_groups
+from app.utils.format_score_groups import format_score_groups
+from app.utils.format_team import format_team
+from app.utils.group_members_by_score import group_members_by_score
 
 def team_generator_node(state: TeamState, structured_llm) -> TeamState:
+    members = state["members"]
     member_scores = state["member_scores"]
+    team_a = state.get("team_a")
+    team_b = state.get("team_b")
     must_link_groups = state["must_link_groups"]
     cannot_link_groups = state["cannot_link_groups"]
     feedback = state.get("feedback", "")
 
-    print(f"===== must_link_groups:{must_link_groups}=====")
-    print(f"===== cannot_link_groups:{cannot_link_groups}=====")
+    formatted_score_groups = format_score_groups(group_members_by_score(
+      members,
+      member_scores,
+    ))
+
+    formatted_must_link_groups = format_groups(must_link_groups)
+    formatted_cannot_link_groups = format_groups(cannot_link_groups)
+
+    formatted_team_a = format_team(team_a)
+    formatted_team_b = format_team(team_b)
 
     prompt = [
         SystemMessage(content="""
-당신은 **제약 조건이 있는 팀 분배 최적화 문제를 해결하는 전문가**입니다.  
-단순한 합계 균형이 아니라, **가중치 분포의 균형 + 그룹 제약 조건을 모두 만족하는 팀 구성**을 생성하는 것이 목표입니다.  
-또한, 필요 시 **사람의 피드백을 반영하여 결과를 개선**해야 합니다.
+당신은 제약 기반 팀 밸런싱 시스템이다.
+목표는 hard constraint를 절대 위반하지 않으면서, 점수 분포와 총합이 균형적인 두 팀을 생성하는 것이다.
         """),
         HumanMessage(content=f"""
 ### 입력
 
-member_scores:
-{member_scores}
+formatted_score_groups:
+{formatted_score_groups}
 
-- 형식: dict[str, int]
-  - key: 팀원 이름
-  - value: 팀원의 가중치 (1 이상의 정수)
+- 형식: 점수별 그룹 문자열
+- 각 줄 형식: "<점수>: 이름1, 이름2, ..."
+- 높은 점수부터 정렬됨
+- 같은 점수의 멤버들은 동일 줄에 그룹화됨
 
-must_link_groups:
-{must_link_groups}
+formatted_must_link_groups:
+{formatted_must_link_groups}
 
-- 형식: list[list[str]]
-- 같은 리스트에 포함된 멤버들은 **반드시 같은 팀에 속해야 함**
+- 같은 줄의 멤버들은 반드시 같은 팀이어야 함
+- 각 줄은 하나의 묶음 그룹 의미
 
-cannot_link_groups:
-{cannot_link_groups}
+formatted_cannot_link_groups:
+{formatted_cannot_link_groups}
 
-- 형식: list[list[str]]
-- 같은 리스트에 포함된 멤버들은 **반드시 서로 다른 팀에 속해야 함**
-- (2명 이상일 경우, 가능한 한 서로 다른 팀으로 분산)
+- 같은 줄의 멤버들은 반드시 같은 팀이어야 함
+- 각 줄은 하나의 분리 그룹 의미
 
 feedback (선택적 입력):
 {feedback}
 
 - 형식: str 또는 None
 - 사람이 이전 결과에 대해 제공한 피드백
+
+previous_team_a (선택적 입력):
+{formatted_team_a}
+
+- 전에 만들어진 팀a 결과
+
+previous_team_b (선택적 입력):
+{formatted_team_b}
+
+- 전에 만들어진 팀b 결과
 
 ---
 
@@ -53,8 +77,8 @@ feedback (선택적 입력):
 
 1. **가중치 분포 균형 유지 (최우선)**
 2. **총 가중치 합 차이 최소화**
-3. **must_link_groups 반드시 만족**
-4. **cannot_link_groups 반드시 만족**
+3. **formatted_must_link_groups 반드시 만족**
+4. **formatted_cannot_link_groups 반드시 만족**
 5. **(피드백 존재 시) 개선된 결과 생성**
 
 ---
@@ -62,12 +86,12 @@ feedback (선택적 입력):
 ### 핵심 로직 (반드시 준수)
 
 #### 1. 그룹 제약 우선 처리
-- must_link_groups:
+- formatted_must_link_groups:
   - 각 그룹을 하나의 “묶음 단위(super node)”로 취급하여 분배
-- cannot_link_groups:
+- formatted_cannot_link_groups:
   - 같은 그룹 내 멤버는 서로 다른 팀으로 분리
   - 충돌 발생 시:
-    - must_link_groups > cannot_link_groups 우선순위로 처리
+    - formatted_must_link_groups > formatted_cannot_link_groups 우선순위로 처리
     - 불가능한 경우 reasoning에 명확히 설명
 
 ---
@@ -94,15 +118,11 @@ feedback (선택적 입력):
 
 ### 추천 접근 방식
 
-1. must_link_groups를 기반으로 멤버를 묶어 super node 생성
+1. formatted_must_link_groups 기반으로 멤버를 묶어 super node 생성
 2. 가중치 기준 그룹화
 3. 그룹 단위 교차 분배 (alternating)
-4. cannot_link_groups 제약 체크 및 조정
+4. formatted_cannot_link_groups 제약 체크 및 조정
 5. 합 차이 최소화를 위한 최소 swap 수행
-6. 최종 검증:
-   - 분포 균형
-   - 합 차이
-   - 그룹 제약 만족 여부
 
 ---
 
@@ -121,8 +141,6 @@ feedback (선택적 입력):
 - 모든 멤버는 반드시 하나의 팀에만 속해야 한다
 - 두 팀의 인원 수는 가능한 균형 유지
 - 각 팀 내부 순서는 **완전히 랜덤 셔플**
-- 결과 생성 후 **self-check 수행**
-  - 더 나은 분배 가능 여부 검증
 
 ---
 

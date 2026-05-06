@@ -1,4 +1,5 @@
 from app.graph.nodes.evaluator_node import evaluator_node
+from app.graph.nodes.human_approval_node import human_approval_node
 from app.graph.nodes.input_node import input_node
 from app.graph.nodes.score_fetch_node import score_fetch_node
 from app.graph.nodes.team_generator_node import team_generator_node
@@ -20,24 +21,37 @@ def graph_builder():
     builder.add_node("score_fetch", score_fetch_node)
     builder.add_node("team_generator", lambda state: team_generator_node(state, team_generator_llm))
     builder.add_node("evaluator", lambda state: evaluator_node(state, evaluator_llm))
+    builder.add_node("human_approval", human_approval_node)
 
     builder.add_edge(START, "input")
     builder.add_edge("input", "score_fetch")
     builder.add_edge("score_fetch", "team_generator")
     builder.add_edge("team_generator", "evaluator")
 
-    def evaluator_continue(state):
+    def evaluator_continue(state: TeamState):
         if state["evaluation_status"] == "PASS":
-            return END
+            return "human_approval"
 
         if state["evaluation_count"] >= 2:
-            return END
+            return "human_approval"
 
         return "team_generator"
+
+    def human_approval_continue(state: TeamState):
+        if state["feedback"]:
+            return "team_generator"
+        
+        return END
 
     builder.add_conditional_edges(
         "evaluator",
         evaluator_continue,
+        ["team_generator", "human_approval"]
+    )
+
+    builder.add_conditional_edges(
+        "human_approval",
+        human_approval_continue,
         ["team_generator", END]
     )
 

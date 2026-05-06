@@ -28,7 +28,6 @@ class TeamState(TypedDict):
     evaluation_count: int
 
     # Control
-    approved: bool
     retry_count: int
     max_retries: int
 
