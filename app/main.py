@@ -9,19 +9,19 @@ st.title("Team Balancer")
 input_container = st.container()
 
 with input_container:
-    team_members = st.text_input("팀원 이름 (띄어쓰기)")
-    separate_group = st.text_input("분리 그룹 (선택)")
-    bind_group = st.text_input("묶음 그룹 (선택)")
+    members_input = st.text_input("팀원 이름 (띄어쓰기)")
+    cannot_link_groups_input = st.text_input("분리 그룹 (선택) 예: a/b, c/d")
+    must_link_groups_input = st.text_input("묶음 그룹 (선택) 예: a-b, c-d-e")
     button_clicked = st.button("팀생성")
 
 if button_clicked:
-    if not team_members: 
+    if not members_input: 
         st.warning("팀원을 입력해주세요.")
     else:
         with st.chat_message("human"):
-            st.write(f"팀원: {team_members}")
-            st.write(f"분리 그룹: {separate_group}")
-            st.write(f"묶음 그룹: {bind_group}")
+            st.write(f"팀원: {members_input}")
+            st.write(f"분리 그룹: {cannot_link_groups_input}")
+            st.write(f"묶음 그룹: {must_link_groups_input}")
 
         msg = st.info("팀 생성 중 ..")
         app = graph_builder()
@@ -32,7 +32,11 @@ if button_clicked:
         }
 
         res = app.invoke(
-            {"raw_input": team_members},
+            {
+                "members_input": members_input,
+                "must_link_groups_input": must_link_groups_input,
+                "cannot_link_groups_input": cannot_link_groups_input,
+            },
             config=config,
         )
 

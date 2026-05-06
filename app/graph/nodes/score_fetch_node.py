@@ -1,6 +1,5 @@
-import json
-from pathlib import Path
 from app.graph.state import TeamState
+from app.utils.load_scores import load_scores
 
 def score_fetch_node(state: TeamState) -> TeamState:
     members = state["members"]
@@ -19,9 +18,3 @@ def score_fetch_node(state: TeamState) -> TeamState:
         "score_source": "data/scores.json",
     }
 
-def load_scores():
-    path = Path(__file__).resolve().parents[3] / "data" / "scores.json"
-    with open(path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    return data["scores"]

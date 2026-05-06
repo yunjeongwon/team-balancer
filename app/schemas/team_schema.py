@@ -4,3 +4,4 @@ class TeamSchema(BaseModel):
     team_a: list[str] = Field(description="팀a의 팀워들")
     team_b: list[str] = Field(description="팀b의 팀워들")
     score_diff: int = Field(description="팀 점수차")
+    reason: str = Field(description="제약 충돌 또는 주요 판단 근거 설명")
