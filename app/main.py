@@ -83,7 +83,6 @@ if team_create_button_clicked:
                 })
 
             msg.empty()
-            st.info("팀 생성 완료")
         except ValidationError as e:
             msg.empty()
             st.error(str(e) + ". 입력을 수정한 후 다시 팀 생성 버튼을 눌러주세요.")
@@ -92,10 +91,16 @@ if team_create_button_clicked:
             st.error("알 수 없는 오류가 발생했습니다. 입력을 수정한 후 다시 팀 생성 버튼을 눌러주세요.")
             st.exception(e)
 
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
 if st.session_state.awaiting_approval:
     snapshot = app.get_state(st.session_state.config)
 
     values = snapshot.values
+
+    msg = st.info("팀 생성 완료. 수정 사항이 있으면 입력해주세요.")
 
     feedback_input = st.chat_input(
         "예: 김철수와 박영희는 같은 팀으로",
@@ -107,6 +112,7 @@ if st.session_state.awaiting_approval:
             "content": feedback_input,
         })
 
+        msg.empty()
         msg = st.info("수정 반영 중 ..")
 
         res = app.invoke(
@@ -129,7 +135,3 @@ if st.session_state.awaiting_approval:
             "content": f"🔵 블루팀\n\n{' '.join(values['team_a'])}\n\n🟡 골드팀\n\n{' '.join(values['team_b'])}"
         })
         st.rerun()
-
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
