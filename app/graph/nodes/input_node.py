@@ -8,7 +8,7 @@ def input_node(state: TeamState) -> TeamState:
     cannot_link_groups_input = state["cannot_link_groups_input"]
 
     # members_input => members
-    members = members_input.split(" ")
+    members = members_input.split()
 
     member_set = set(members)
     if len(member_set) != len(members):
