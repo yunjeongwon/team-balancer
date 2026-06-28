@@ -10,6 +10,11 @@ def team_generator_node(state: TeamState, structured_llm) -> TeamState:
     must_link_groups = state["must_link_groups"]
     cannot_link_groups = state["cannot_link_groups"]
     feedback = state.get("feedback", "")
+    evaluation_reason = (
+        state.get("evaluation_reason")
+        if state.get("evaluation_status") == "FAIL"
+        else None
+    )
 
     score_groups = group_members_by_score(
       members,
@@ -17,12 +22,13 @@ def team_generator_node(state: TeamState, structured_llm) -> TeamState:
     )
 
     prompt = build_team_generator_prompt(
-        score_groups, 
-        must_link_groups, 
+        score_groups,
+        must_link_groups,
         cannot_link_groups,
         feedback,
         team_a,
-        team_b
+        team_b,
+        evaluation_reason,
     )
 
     print("팀 생성 중 ..")

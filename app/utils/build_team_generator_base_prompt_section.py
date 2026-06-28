@@ -8,6 +8,7 @@ def build_team_generator_prompt(
     feedback: str | None,
     team_a: list[str] | None,
     team_b: list[str] | None,
+    evaluation_reason: str | None = None,
 ):
     base_prompt_section = f"""
 ## 필수 규칙 (절대 위반 금지)
@@ -55,6 +56,26 @@ def build_team_generator_prompt(
 """
 
     prompt_sections = [base_prompt_section]
+
+    evaluation_reason_section = f"""
+---
+
+## 이전 시도 검증 실패 사유
+
+아래 사유로 직전 시도가 검증을 통과하지 못했습니다. 이 문제를 해결하도록 다시 생성하세요.
+
+### evaluation_reason
+{evaluation_reason}
+
+### previous_team_a
+{team_a}
+
+### previous_team_b
+{team_b}
+"""
+
+    if evaluation_reason:
+        prompt_sections.append(evaluation_reason_section)
 
     feedback_section = f"""
 ---
