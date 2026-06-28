@@ -1,4 +1,5 @@
 import pytest
+import streamlit as st
 
 from app.schemas.evaluation_schema import EvaluationSchema
 from app.schemas.team_schema import TeamSchema
@@ -39,6 +40,12 @@ class RecordingFakeLLM:
 @pytest.fixture
 def fake_llm(monkeypatch):
     import app.graph.builder as builder_mod
+
+    # app/main.py's get_app() is wrapped in @st.cache_resource, which
+    # Streamlit keys by the function's source rather than object identity.
+    # Without clearing it, AppTest-based tests would reuse another test's
+    # cached graph (built against a different fake_llm instance).
+    st.cache_resource.clear()
 
     llm = RecordingFakeLLM()
     monkeypatch.setattr(builder_mod, "get_model", lambda: llm)

@@ -11,6 +11,18 @@ load_dotenv()
 def get_app():
     return graph_builder()
 
+
+def build_team_message(values: dict) -> str:
+    team_a = " ".join(m for m in values["team_a"] if m != "EMPTY")
+    team_b = " ".join(m for m in values["team_b"] if m != "EMPTY")
+    message = f"🔵 블루팀\n\n{team_a}\n\n🟡 골드팀\n\n{team_b}"
+
+    if values.get("evaluation_status") == "FAIL":
+        message += f"\n\n⚠️ 검증 실패 (자동 재시도 한도 도달)\n{values.get('evaluation_reason', '')}"
+
+    return message
+
+
 app = get_app()
 
 st.title("Team Balancer")
@@ -22,9 +34,6 @@ with input_container:
     cannot_link_groups_input = st.text_input("분리 그룹 (선택) 예: a/b, c/d")
     must_link_groups_input = st.text_input("묶음 그룹 (선택) 예: a-b, c-d-e")
     team_create_button_clicked = st.button("팀 생성")
-
-if "thread_id" not in st.session_state:
-    st.session_state.thread_id = str(uuid.uuid4())
 
 if "awaiting_approval" not in st.session_state:
     st.session_state.awaiting_approval = False
@@ -39,9 +48,11 @@ if team_create_button_clicked:
     st.session_state.awaiting_approval = False
     st.session_state.config = None
 
-    if not members_input: 
+    if not members_input:
         st.warning("팀원을 입력해주세요.")
     else:
+        st.session_state.thread_id = str(uuid.uuid4())
+
         st.session_state.messages.append({
             "role": "user",
             "content": f"""
@@ -79,7 +90,7 @@ if team_create_button_clicked:
                 values = snapshot.values
                 st.session_state.messages.append({
                     "role": "assistant",
-                    "content": f"🔵 블루팀\n\n{' '.join(values['team_a'])}\n\n🟡 골드팀\n\n{' '.join(values['team_b'])}"
+                    "content": build_team_message(values),
                 })
 
             msg.empty()
@@ -115,12 +126,8 @@ if st.session_state.awaiting_approval:
         msg.empty()
         msg = st.info("수정 반영 중 ..")
 
-        res = app.invoke(
-            Command(
-                resume={
-                    "feedback": feedback_input
-                },
-            ),
+        app.invoke(
+            Command(resume=feedback_input),
             config=st.session_state.config,
         )
 
@@ -132,6 +139,6 @@ if st.session_state.awaiting_approval:
 
         st.session_state.messages.append({
             "role": "assistant",
-            "content": f"🔵 블루팀\n\n{' '.join(values['team_a'])}\n\n🟡 골드팀\n\n{' '.join(values['team_b'])}"
+            "content": build_team_message(values),
         })
         st.rerun()
