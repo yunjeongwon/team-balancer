@@ -77,6 +77,7 @@ if team_create_button_clicked:
                     "members_input": members_input,
                     "must_link_groups_input": must_link_groups_input,
                     "cannot_link_groups_input": cannot_link_groups_input,
+                    "default_score": 4,
                 },
                 config=config,
             )

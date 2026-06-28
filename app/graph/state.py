@@ -11,6 +11,7 @@ class TeamState(TypedDict):
     must_link_groups: list[list[str]]
     cannot_link_groups_input: str
     cannot_link_groups: list[list[str]]
+    default_score: int
 
     # Data
     member_scores: dict[str, int]
