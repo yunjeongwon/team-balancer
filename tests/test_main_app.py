@@ -1,5 +1,6 @@
 from streamlit.testing.v1 import AppTest
 
+from app.constants import PLACEHOLDER_MEMBER
 from app.schemas.evaluation_schema import EvaluationSchema
 from app.schemas.team_schema import TeamSchema
 
@@ -24,7 +25,7 @@ def test_each_new_generation_gets_a_fresh_thread_id(fake_llm):
 
 def test_empty_placeholder_member_is_not_shown_to_the_user(fake_llm):
     fake_llm.team_responses = [
-        TeamSchema(team_a=["a", "EMPTY"], team_b=["b", "c"], score_diff=0, reason="fake")
+        TeamSchema(team_a=["a", PLACEHOLDER_MEMBER], team_b=["b", "c"], score_diff=0, reason="fake")
     ]
 
     at = AppTest.from_file("app/main.py")
@@ -32,7 +33,7 @@ def test_empty_placeholder_member_is_not_shown_to_the_user(fake_llm):
     _generate(at, "a b c")
 
     rendered = at.chat_message[-1].markdown[0].value
-    assert "EMPTY" not in rendered
+    assert PLACEHOLDER_MEMBER not in rendered
 
 
 def test_fail_status_is_surfaced_to_the_user(fake_llm):

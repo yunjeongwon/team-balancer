@@ -1,6 +1,7 @@
 from langgraph.types import Command
 import streamlit as st
 from dotenv import load_dotenv
+from app.constants import PLACEHOLDER_MEMBER
 from app.exceptions.validation import ValidationError
 from app.graph.builder import graph_builder
 import uuid
@@ -13,8 +14,8 @@ def get_app():
 
 
 def build_team_message(values: dict) -> str:
-    team_a = " ".join(m for m in values["team_a"] if m != "EMPTY")
-    team_b = " ".join(m for m in values["team_b"] if m != "EMPTY")
+    team_a = " ".join(m for m in values["team_a"] if m != PLACEHOLDER_MEMBER)
+    team_b = " ".join(m for m in values["team_b"] if m != PLACEHOLDER_MEMBER)
     message = f"🔵 블루팀\n\n{team_a}\n\n🟡 골드팀\n\n{team_b}"
 
     if values.get("evaluation_status") == "FAIL":

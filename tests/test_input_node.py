@@ -1,5 +1,6 @@
 import pytest
 
+from app.constants import PLACEHOLDER_MEMBER
 from app.exceptions.validation import ValidationError
 from app.graph.nodes.input_node import input_node
 
@@ -16,7 +17,7 @@ def test_collapses_repeated_spaces_instead_of_creating_blank_member():
     result = input_node(_state("a  b c"))
 
     assert "" not in result["members"]
-    assert result["members"] == ["a", "b", "c", "EMPTY"]
+    assert result["members"] == ["a", "b", "c", PLACEHOLDER_MEMBER]
 
 
 def test_even_member_count_is_not_padded():

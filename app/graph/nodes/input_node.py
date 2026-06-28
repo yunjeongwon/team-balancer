@@ -1,3 +1,4 @@
+from app.constants import PLACEHOLDER_MEMBER
 from app.exceptions.validation import ValidationError
 from app.graph.state import TeamState
 from app.utils.parse_pairs_input import parse_group_input
@@ -16,12 +17,12 @@ def input_node(state: TeamState) -> TeamState:
 
     # 짝수 맞추기
     if len(members) % 2 == 1:
-        members.append('EMPTY')
+        members.append(PLACEHOLDER_MEMBER)
 
     # groups_input => groups
     must_link_groups = parse_group_input(must_link_groups_input, "-")
     cannot_link_groups = parse_group_input(cannot_link_groups_input, "/")
-    
+
     # validation
     for group in must_link_groups + cannot_link_groups:
         for member in group:
