@@ -27,12 +27,5 @@ class TeamState(TypedDict):
     evaluation_reason: str
     evaluation_count: int
 
-    # Control
-    retry_count: int
-    max_retries: int
-
     # Feedback
     feedback: Optional[str]
-
-    # Debug / Trace
-    history: list[dict]  # 각 시도 결과 저장
