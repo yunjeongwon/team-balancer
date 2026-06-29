@@ -9,6 +9,8 @@ def build_evaluator_prompt(
     feedback: str | None,
     team_a: list[str],
     team_b: list[str],
+    team_a_score_sum: int,
+    team_b_score_sum: int,
 ):
     human_message_content = f"""
 # 입력 데이터
@@ -33,6 +35,12 @@ result_team_a:
 
 result_team_b:
 {team_b}
+
+team_a_score_sum:
+{team_a_score_sum}
+
+team_b_score_sum:
+{team_b_score_sum}
 
 ---
 
@@ -85,6 +93,7 @@ Hard Constraints 를 모두 통과한 경우에만 아래를 평가하세요.
 - 총점만 비슷하다고 균형이라고 판단하지 말 것
 - 특정 강한 멤버 쏠림이 있으면 reason 에 명시할 것
 - Soft Evaluation 만으로 FAIL 처리하지 말 것
+- team_a_score_sum, team_b_score_sum 값을 그대로 사용할 것. score_groups 에서 직접 재계산하지 말 것
 
 ---
 

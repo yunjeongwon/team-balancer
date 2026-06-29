@@ -1,6 +1,7 @@
 import logging
 
 from app.graph.state import TeamState
+from app.utils.compute_team_score_sum import compute_team_score_sum
 from app.utils.format_groups import format_groups
 from app.utils.build_evaluator_prompt import build_evaluator_prompt
 from app.utils.format_score_groups import format_score_groups
@@ -24,6 +25,10 @@ def evaluator_node(state: TeamState, structured_llm) -> TeamState:
       member_scores,
     )
 
+    team_a_score_sum = compute_team_score_sum(team_a, member_scores)
+    team_b_score_sum = compute_team_score_sum(team_b, member_scores)
+    logger.info(f"team_a_score_sum={team_a_score_sum} team_b_score_sum={team_b_score_sum}")
+
     prompt = build_evaluator_prompt(
             members,
             score_groups,
@@ -32,6 +37,8 @@ def evaluator_node(state: TeamState, structured_llm) -> TeamState:
             feedback,
             team_a,
             team_b,
+            team_a_score_sum,
+            team_b_score_sum,
     )
 
     logger.info(f"'{evaluation_count + 1}번째' 검증 중 ..")

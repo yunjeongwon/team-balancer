@@ -43,3 +43,25 @@ def test_first_ever_generation_has_no_evaluation_reason_section(fake_llm):
 
     first_prompt_text = fake_llm.team_prompts[0][-1].content
     assert "이전 시도 검증 실패 사유" not in first_prompt_text
+
+
+def test_evaluator_prompt_includes_computed_team_score_sums(fake_llm):
+    fake_llm.team_responses = [
+        TeamSchema(team_a=["a"], team_b=["b"], score_diff=0, reason="try-1"),
+    ]
+
+    app = builder_mod.graph_builder()
+    config = {"configurable": {"thread_id": "t3"}}
+    app.invoke(
+        {
+            "members_input": "a b",
+            "must_link_groups_input": "",
+            "cannot_link_groups_input": "",
+            "default_score": 4,
+        },
+        config=config,
+    )
+
+    eval_prompt_text = fake_llm.eval_prompts[0][-1].content
+    assert "team_a_score_sum:\n4" in eval_prompt_text
+    assert "team_b_score_sum:\n4" in eval_prompt_text
