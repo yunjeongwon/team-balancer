@@ -1,6 +1,10 @@
+import logging
+
 from app.graph.state import TeamState
 from app.utils.build_team_generator_base_prompt_section import build_team_generator_prompt
 from app.utils.group_members_by_score import group_members_by_score
+
+logger = logging.getLogger("team_balancer")
 
 def team_generator_node(state: TeamState, structured_llm) -> TeamState:
     members = state["members"]
@@ -31,13 +35,13 @@ def team_generator_node(state: TeamState, structured_llm) -> TeamState:
         evaluation_reason,
     )
 
-    print("팀 생성 중 ..")
+    logger.info("팀 생성 중 ..")
 
     res = structured_llm.invoke(prompt)
 
     message = f"팀 생성 완료"
-    print(message)
-    print(f"res========= {res}")
+    logger.info(message)
+    logger.info(f"res========= {res}")
 
     return {
         "messages": [message],

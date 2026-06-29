@@ -1,7 +1,11 @@
+import logging
+
 from app.constants import PLACEHOLDER_MEMBER
 from app.exceptions.validation import ValidationError
 from app.graph.state import TeamState
 from app.utils.parse_pairs_input import parse_group_input
+
+logger = logging.getLogger("team_balancer")
 
 def input_node(state: TeamState) -> TeamState:
     members_input = state["members_input"]
@@ -32,7 +36,7 @@ def input_node(state: TeamState) -> TeamState:
             )
 
     message = f"입력 파싱 완료"
-    print(message)
+    logger.info(message)
 
     return {
         "messages": [message],
