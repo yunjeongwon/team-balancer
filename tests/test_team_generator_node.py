@@ -20,6 +20,7 @@ def test_fail_reason_is_fed_back_into_the_retry_prompt(fake_llm):
             "members_input": "a b",
             "must_link_groups_input": "",
             "cannot_link_groups_input": "",
+            "default_score": 4,
         },
         config=config,
     )
@@ -37,6 +38,7 @@ def test_first_ever_generation_has_no_evaluation_reason_section(fake_llm):
             "members_input": "a b",
             "must_link_groups_input": "",
             "cannot_link_groups_input": "",
+            "default_score": 4,
         },
         config=config,
     )
