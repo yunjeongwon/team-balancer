@@ -50,3 +50,10 @@ def fake_llm(monkeypatch):
     llm = RecordingFakeLLM()
     monkeypatch.setattr(builder_mod, "get_model", lambda: llm)
     return llm
+
+
+@pytest.fixture(autouse=True)
+def isolate_run_logs(tmp_path, monkeypatch):
+    import app.logging_config as logging_config
+
+    monkeypatch.setattr(logging_config, "LOG_DIR", tmp_path / "logs")

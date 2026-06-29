@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from app.constants import PLACEHOLDER_MEMBER
 from app.exceptions.validation import ValidationError
 from app.graph.builder import graph_builder
+from app.logging_config import configure_run_logging
 import uuid
 
 load_dotenv()
@@ -53,6 +54,7 @@ if team_create_button_clicked:
         st.warning("팀원을 입력해주세요.")
     else:
         st.session_state.thread_id = str(uuid.uuid4())
+        configure_run_logging(st.session_state.thread_id)
 
         st.session_state.messages.append({
             "role": "user",
@@ -128,6 +130,7 @@ if st.session_state.awaiting_approval:
         msg.empty()
         msg = st.info("수정 반영 중 ..")
 
+        configure_run_logging(st.session_state.thread_id)
         app.invoke(
             Command(resume=feedback_input),
             config=st.session_state.config,
