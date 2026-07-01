@@ -1,5 +1,9 @@
+import logging
+
 from langgraph.types import interrupt
 from app.graph.state import TeamState
+
+logger = logging.getLogger("team_balancer")
 
 
 def human_approval_node(state: TeamState) -> TeamState:
@@ -12,7 +16,7 @@ def human_approval_node(state: TeamState) -> TeamState:
     )
 
     message = f"수정 요청 입력"
-    print(message)
+    logger.info(message)
 
     return {
         "messages": [message],

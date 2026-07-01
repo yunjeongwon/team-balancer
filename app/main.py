@@ -111,11 +111,11 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 if st.session_state.awaiting_approval:
-    snapshot = app.get_state(st.session_state.config)
-
-    values = snapshot.values
-
     msg = st.info("팀 생성 완료. 수정 사항이 있으면 입력해주세요.")
+
+    if st.button("이대로 확정"):
+        st.session_state.awaiting_approval = False
+        st.rerun()
 
     feedback_input = st.chat_input(
         "예: 김철수와 박영희는 같은 팀으로",
@@ -130,20 +130,24 @@ if st.session_state.awaiting_approval:
         msg.empty()
         msg = st.info("수정 반영 중 ..")
 
-        configure_run_logging(st.session_state.thread_id)
-        app.invoke(
-            Command(resume=feedback_input),
-            config=st.session_state.config,
-        )
+        try:
+            configure_run_logging(st.session_state.thread_id)
+            app.invoke(
+                Command(resume=feedback_input),
+                config=st.session_state.config,
+            )
 
-        msg.empty()
+            snapshot = app.get_state(st.session_state.config)
+            values = snapshot.values
 
-        snapshot = app.get_state(st.session_state.config)
-
-        values = snapshot.values
-
-        st.session_state.messages.append({
-            "role": "assistant",
-            "content": build_team_message(values),
-        })
-        st.rerun()
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": build_team_message(values),
+            })
+        except Exception as e:
+            msg.empty()
+            st.error("수정 반영 중 오류가 발생했습니다. 다시 시도해주세요.")
+            st.exception(e)
+        else:
+            msg.empty()
+            st.rerun()
