@@ -1,5 +1,10 @@
 # Team Balancer AI
 
+## 실행 방법
+```bash
+PYTHONPATH=. uv run streamlit run app/main.py
+```
+
 > **LangGraph 기반 Human-in-the-loop AI Workflow로 풋살 팀 밸런싱 과정을 자동화한 실사용 프로젝트**
 
 <p align="center">
