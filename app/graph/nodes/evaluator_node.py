@@ -1,12 +1,11 @@
 import logging
 
 from app.graph.state import TeamState
+from app.schemas.evaluation_schema import EvaluationSchema
 from app.utils.compute_team_score_sum import compute_team_score_sum
-from app.utils.format_groups import format_groups
 from app.utils.build_evaluator_prompt import build_evaluator_prompt
-from app.utils.format_score_groups import format_score_groups
-from app.utils.format_team import format_team
 from app.utils.group_members_by_score import group_members_by_score
+from app.utils.validate_team_result import validate_team_result
 
 logger = logging.getLogger("team_balancer")
 
@@ -24,6 +23,27 @@ def evaluator_node(state: TeamState, structured_llm) -> TeamState:
       members,
       member_scores,
     )
+
+    hard_validation = validate_team_result(
+        members,
+        team_a,
+        team_b,
+        must_link_groups,
+        cannot_link_groups,
+    )
+
+    if hard_validation.status == "FAIL":
+        message = f"'{evaluation_count + 1}번째' 검증 완료"
+        logger.info(f"'{evaluation_count + 1}번째' 검증 중 ..")
+        logger.info(message)
+        logger.info(hard_validation)
+
+        return {
+            "messages": [message],
+            "evaluation_status": hard_validation.status,
+            "evaluation_reason": hard_validation.reason,
+            "evaluation_count": evaluation_count + 1
+        }
 
     team_a_score_sum = compute_team_score_sum(team_a, member_scores)
     team_b_score_sum = compute_team_score_sum(team_b, member_scores)
@@ -44,14 +64,18 @@ def evaluator_node(state: TeamState, structured_llm) -> TeamState:
     logger.info(f"'{evaluation_count + 1}번째' 검증 중 ..")
 
     res = structured_llm.invoke(prompt)
+    final_evaluation = EvaluationSchema(
+        status="PASS",
+        reason=f"{hard_validation.reason}. {res.reason}",
+    )
 
     message = f"'{evaluation_count + 1}번째' 검증 완료"
     logger.info(message)
-    logger.info(res)
+    logger.info(final_evaluation)
 
     return {
         "messages": [message],
-        "evaluation_status": res.status,
-        "evaluation_reason": res.reason,
+        "evaluation_status": final_evaluation.status,
+        "evaluation_reason": final_evaluation.reason,
         "evaluation_count": evaluation_count + 1
     }
