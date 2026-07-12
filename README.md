@@ -101,7 +101,7 @@ PYTHONPATH=. uv run streamlit run app/main.py
 
 | Category | Tech |
 |---|---|
-| Language | Python 3.14 |
+| Language | Python 3.11+ |
 | AI Workflow | LangGraph |
 | LLM | GPT-5-nano, Gemini-2.5-flash-lite |
 | Validation | Pydantic |
@@ -372,6 +372,35 @@ GEMINI_API_KEY=your_key
 ```bash
 PYTHONPATH=. uv run streamlit run app/main.py
 ```
+
+---
+
+## 배포 (Streamlit Community Cloud)
+
+Streamlit 공식 무료 호스팅을 사용합니다. (Vercel은 서버리스 구조라 Streamlit과 호환되지 않습니다.)
+
+### 1. 앱 생성
+
+[share.streamlit.io](https://share.streamlit.io) → **New app** → 레포/브랜치 선택
+
+- **Main file path**: `app/main.py`
+- **Python version**: 3.11 이상
+
+### 2. Secrets 설정
+
+앱 생성 후 **Settings → Secrets**에 아래 입력:
+
+```toml
+GOOGLE_API_KEY = "..."
+ZAI_API_KEY = "..."
+APP_PASSWORD = "공유할 비밀번호"
+```
+
+> `APP_PASSWORD`는 로그인 게이트용 공유 비밀번호입니다. 접근을 허용할 사람에게만 알려주세요.
+
+### 3. 점수 갱신
+
+`data/scores.json`은 읽기 전용으로 배포됩니다. 점수를 바꾸려면 로컬에서 수정 → `git push` → 자동 재배포됩니다.
 
 ---
 
