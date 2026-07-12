@@ -62,3 +62,35 @@ def test_save_github_fetches_sha_then_puts(monkeypatch):
     assert body["message"] == "chore(scores): update via app"
     decoded = json.loads(base64.b64decode(body["content"]).decode("utf-8"))
     assert decoded == {"scores": {"alice": 7}}
+
+
+def test_load_scores_uses_github_when_token_present(monkeypatch):
+    monkeypatch.setenv("GITHUB_TOKEN", "abc")
+    with patch.object(ls, "_load_github", return_value={"x": 1}) as gh, \
+         patch.object(ls, "_load_local") as loc:
+        assert ls.load_scores() == {"x": 1}
+    assert gh.called and not loc.called
+
+
+def test_load_scores_uses_local_when_no_token(monkeypatch):
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    with patch.object(ls, "_load_github") as gh, \
+         patch.object(ls, "_load_local", return_value={"y": 2}) as loc:
+        assert ls.load_scores() == {"y": 2}
+    assert loc.called and not gh.called
+
+
+def test_save_scores_uses_github_when_token_present(monkeypatch):
+    monkeypatch.setenv("GITHUB_TOKEN", "abc")
+    with patch.object(ls, "_save_github") as gh, \
+         patch.object(ls, "_save_local") as loc:
+        ls.save_scores({"x": 1})
+    assert gh.called and not loc.called
+
+
+def test_save_scores_uses_local_when_no_token(monkeypatch):
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    with patch.object(ls, "_save_github") as gh, \
+         patch.object(ls, "_save_local") as loc:
+        ls.save_scores({"y": 2})
+    assert loc.called and not gh.called

@@ -99,13 +99,26 @@ def _scores_path() -> Path:
 
 
 def load_scores() -> dict[str, int]:
+    if _get_token():
+        return _load_github()
+    return _load_local()
+
+
+def save_scores(scores: dict[str, int]) -> None:
+    if _get_token():
+        _save_github(scores)
+    else:
+        _save_local(scores)
+
+
+def _load_local() -> dict[str, int]:
     with open(_scores_path(), "r", encoding="utf-8") as f:
         data = json.load(f)
 
     return data["scores"]
 
 
-def save_scores(scores: dict[str, int]) -> None:
+def _save_local(scores: dict[str, int]) -> None:
     """{"scores": {...}} 래퍼 구조를 보존하여 scores.json에 원자적으로 기록한다.
     임시 파일에 쓴 뒤 os.replace 로 교체해, 쓰기 도중 실패해도 반쪽 파일이
     남지 않도록 한다."""
