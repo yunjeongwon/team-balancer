@@ -2,6 +2,9 @@ import base64
 import json
 from unittest.mock import MagicMock, patch
 
+import pytest
+import requests
+
 from app.utils import load_scores as ls
 
 
@@ -94,3 +97,44 @@ def test_save_scores_uses_local_when_no_token(monkeypatch):
          patch.object(ls, "_save_local") as loc:
         ls.save_scores({"y": 2})
     assert loc.called and not gh.called
+
+
+def test_load_github_propagates_http_error_on_404(monkeypatch):
+    # raise_for_status 가 HTTPError 를 던지면 그대로 전파되어야 한다.
+    monkeypatch.setenv("GITHUB_TOKEN", "abc")
+    with patch.object(ls, "requests") as mock_req:
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status.side_effect = requests.HTTPError(
+            "404 Client Error: Not Found"
+        )
+        mock_req.get.return_value = mock_resp
+        with pytest.raises(requests.HTTPError):
+            ls._load_github()
+
+
+def test_save_github_propagates_http_error_on_409(monkeypatch):
+    # PUT 의 raise_for_status 가 409 를 던지면 그대로 전파되어야 한다.
+    monkeypatch.setenv("GITHUB_TOKEN", "abc")
+    fake_get = _fake_contents_response({"alice": 5}, sha="sha-xyz")
+    with patch.object(ls, "requests") as mock_req:
+        mock_req.get.return_value = MagicMock(
+            json=MagicMock(return_value=fake_get)
+        )
+        put_resp = MagicMock()
+        put_resp.raise_for_status.side_effect = requests.HTTPError(
+            "409 Server Error: Conflict"
+        )
+        mock_req.put.return_value = put_resp
+        with pytest.raises(requests.HTTPError):
+            ls._save_github({"alice": 7})
+
+
+def test_load_github_raises_runtime_error_on_malformed_payload(monkeypatch):
+    # content 키가 없는 malformed payload 는 RuntimeError 로 명확히 전달.
+    monkeypatch.setenv("GITHUB_TOKEN", "abc")
+    with patch.object(ls, "requests") as mock_req:
+        mock_req.get.return_value = MagicMock(
+            json=MagicMock(return_value={"sha": "abc"})
+        )
+        with pytest.raises(RuntimeError, match="scores.json 형식이 올바르지 않습니다"):
+            ls._load_github()

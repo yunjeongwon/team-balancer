@@ -41,7 +41,11 @@ def _headers() -> dict:
 
 
 def _load_github() -> dict[str, int]:
-    """GitHub Contents API 로 scores.json 을 읽어 dict 로 반환."""
+    """GitHub Contents API 로 scores.json 을 읽어 dict 로 반환.
+
+    참고: 토큰이 설정된 배포 환경에서는 매 팀 생성 실행마다 api.github.com 으로
+    네트워크 GET 을 보낸다. 즉 GitHub API 장애/속도제한이 팀 밸런싱에 직접
+    영향을 미친다 (로컬 폴백 없음 — ephemeral FS 가 그 이유)."""
     resp = requests.get(
         f"{_API_BASE}/repos/{OWNER}/{REPO}/contents/{SCORES_PATH}",
         params={"ref": BRANCH},
@@ -50,13 +54,21 @@ def _load_github() -> dict[str, int]:
     )
     resp.raise_for_status()
     payload = resp.json()
-    raw = base64.b64decode(payload["content"]).decode("utf-8")
-    return json.loads(raw)["scores"]
+    try:
+        raw = base64.b64decode(payload["content"]).decode("utf-8")
+        return json.loads(raw)["scores"]
+    except (KeyError, json.JSONDecodeError) as e:
+        raise RuntimeError(
+            f"scores.json 형식이 올바르지 않습니다: {e}"
+        ) from e
 
 
 def _save_github(scores: dict[str, int]) -> None:
     """GitHub Contents API 로 scores.json 을 갱신(새 커밋).
-    저장 직전 GET 으로 최신 sha 를 조회해 낙관적 락에 사용한다."""
+    저장 직전 GET 으로 최신 sha 를 조회해 낙관적 락에 사용한다.
+
+    참고: GET-then-PUT 은 원자적이지 않다. 동시 편집이 발생하면 PUT 시 HTTP 409
+    Conflict 로 나타나며(단일 편집자 가정), 그 경우 예외가 전파된다."""
     get_resp = requests.get(
         f"{_API_BASE}/repos/{OWNER}/{REPO}/contents/{SCORES_PATH}",
         params={"ref": BRANCH},
