@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 from pathlib import Path
@@ -37,6 +38,20 @@ def _headers() -> dict:
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
     }
+
+
+def _load_github() -> dict[str, int]:
+    """GitHub Contents API 로 scores.json 을 읽어 dict 로 반환."""
+    resp = requests.get(
+        f"{_API_BASE}/repos/{OWNER}/{REPO}/contents/{SCORES_PATH}",
+        params={"ref": BRANCH},
+        headers=_headers(),
+        timeout=15,
+    )
+    resp.raise_for_status()
+    payload = resp.json()
+    raw = base64.b64decode(payload["content"]).decode("utf-8")
+    return json.loads(raw)["scores"]
 
 
 def _project_root() -> Path:
