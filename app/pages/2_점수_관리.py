@@ -1,7 +1,10 @@
 import pandas as pd
 import streamlit as st
 
+from app.auth import require_auth
 from app.utils.load_scores import load_scores, save_scores
+
+require_auth()
 
 st.title("점수 관리")
 st.caption(

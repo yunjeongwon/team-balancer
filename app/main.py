@@ -1,7 +1,7 @@
 from langgraph.types import Command
 import streamlit as st
-from streamlit.errors import StreamlitSecretNotFoundError
 from dotenv import load_dotenv
+from app.auth import require_auth
 from app.constants import PLACEHOLDER_MEMBER
 from app.exceptions.validation import ValidationError
 from app.graph.builder import graph_builder
@@ -9,7 +9,6 @@ from app.logging_config import configure_run_logging
 from app.utils.compute_team_score_sum import compute_team_score_sum
 from app.utils.parse_team_request import parse_team_request
 from pathlib import Path
-import os
 import uuid
 
 load_dotenv()
@@ -68,28 +67,7 @@ def _format_member_with_score(member: str, member_scores: dict[str, int]) -> str
 
 app = get_app(graph_code_stamp())
 
-# --- 비밀번호 게이트 (shared password) ---
-# APP_PASSWORD: 로컬 .env 우선, 없으면 Streamlit Secrets(prod) 사용.
-# (secrets.toml 자체가 없으면 st.secrets.get 가 에러를 던지므로 env 우선)
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
-
-if not st.session_state.authenticated:
-    st.title("Team Balancer")
-    expected_pw = os.environ.get("APP_PASSWORD", "")
-    if not expected_pw:
-        try:
-            expected_pw = st.secrets.get("APP_PASSWORD", "")
-        except StreamlitSecretNotFoundError:
-            expected_pw = ""
-    pw = st.text_input("비밀번호를 입력하세요", type="password")
-    if st.button("로그인"):
-        if pw and pw == expected_pw:
-            st.session_state.authenticated = True
-            st.rerun()
-        else:
-            st.error("비밀번호가 올바르지 않습니다.")
-    st.stop()
+require_auth()
 
 st.title("Team Balancer")
 
