@@ -40,3 +40,25 @@ def test_load_github_decodes_base64_and_returns_scores(monkeypatch):
     # 올바른 URL 과 ref 파라미터 호출 검증
     _, kwargs = mock_req.get.call_args
     assert kwargs["params"] == {"ref": "master"}
+
+
+def test_save_github_fetches_sha_then_puts(monkeypatch):
+    monkeypatch.setenv("GITHUB_TOKEN", "abc")
+    fake_get = _fake_contents_response({"alice": 5}, sha="sha-xyz")
+    with patch.object(ls, "requests") as mock_req:
+        mock_req.get.return_value = MagicMock(json=MagicMock(return_value=fake_get))
+        mock_req.put.return_value = MagicMock(status_code=200)
+
+        ls._save_github({"alice": 7})
+
+    # 1) GET 호출 (sha 조회)
+    assert mock_req.get.called
+
+    # 2) PUT 호출 — 본문에 sha, branch, message, base64 content 포함
+    _, kwargs = mock_req.put.call_args
+    body = kwargs["json"]
+    assert body["sha"] == "sha-xyz"
+    assert body["branch"] == "master"
+    assert body["message"] == "chore(scores): update via app"
+    decoded = json.loads(base64.b64decode(body["content"]).decode("utf-8"))
+    assert decoded == {"scores": {"alice": 7}}

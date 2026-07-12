@@ -54,6 +54,36 @@ def _load_github() -> dict[str, int]:
     return json.loads(raw)["scores"]
 
 
+def _save_github(scores: dict[str, int]) -> None:
+    """GitHub Contents API 로 scores.json 을 갱신(새 커밋).
+    저장 직전 GET 으로 최신 sha 를 조회해 낙관적 락에 사용한다."""
+    get_resp = requests.get(
+        f"{_API_BASE}/repos/{OWNER}/{REPO}/contents/{SCORES_PATH}",
+        params={"ref": BRANCH},
+        headers=_headers(),
+        timeout=15,
+    )
+    get_resp.raise_for_status()
+    sha = get_resp.json()["sha"]
+
+    content = base64.b64encode(
+        json.dumps({"scores": scores}, ensure_ascii=False).encode("utf-8")
+    ).decode("ascii")
+
+    put_resp = requests.put(
+        f"{_API_BASE}/repos/{OWNER}/{REPO}/contents/{SCORES_PATH}",
+        headers=_headers(),
+        json={
+            "message": COMMIT_MESSAGE,
+            "content": content,
+            "sha": sha,
+            "branch": BRANCH,
+        },
+        timeout=15,
+    )
+    put_resp.raise_for_status()
+
+
 def _project_root() -> Path:
     project_root = Path(__file__).resolve()
 
