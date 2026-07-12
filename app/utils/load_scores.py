@@ -2,6 +2,42 @@ import json
 import os
 from pathlib import Path
 
+import requests
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# --- GitHub 백엔드 설정 ---
+OWNER = "yunjeongwon"
+REPO = "team-balancer"
+SCORES_PATH = "data/scores.json"
+BRANCH = "master"
+COMMIT_MESSAGE = "chore(scores): update via app"
+_API_BASE = "https://api.github.com"
+
+
+def _get_token() -> str | None:
+    """GITHUB_TOKEN 을 환경변수 우선, 없으면 Streamlit Secrets 에서 읽는다.
+    둘 다 없으면 None. app/auth.py 의 APP_PASSWORD 패턴과 동일."""
+    token = os.environ.get("GITHUB_TOKEN")
+    if token:
+        return token
+    try:
+        import streamlit as st
+
+        return st.secrets.get("GITHUB_TOKEN") or None
+    except Exception:
+        # streamlit 미구동 또는 secrets 미설정
+        return None
+
+
+def _headers() -> dict:
+    return {
+        "Authorization": f"token {_get_token()}",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+
 
 def _project_root() -> Path:
     project_root = Path(__file__).resolve()
