@@ -398,6 +398,8 @@ APP_PASSWORD = "공유할 비밀번호"
 
 > `APP_PASSWORD`는 로그인 게이트용 공유 비밀번호입니다. 접근을 허용할 사람에게만 알려주세요.
 
+> GLM 톡이 끊기면 `USE_GEMINI = "1"` 한 줄을 Secrets에 추가하면 Gemini(`GOOGLE_API_KEY`)로 전환됩니다.
+
 ### 3. 점수 갱신
 
 `data/scores.json`은 읽기 전용으로 배포됩니다. 점수를 바꾸려면 로컬에서 수정 → `git push` → 자동 재배포됩니다.
