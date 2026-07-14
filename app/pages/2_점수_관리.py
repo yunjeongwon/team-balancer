@@ -15,7 +15,7 @@ st.caption(
 # 직전 추가/수정/삭제 결과 메시지. st.rerun() 직전의 st.success/toast 호출은
 # rerun에 의해 무시되므로 session_state로 넘겨 여기서 표시한다.
 if "score_action_msg" in st.session_state:
-    st.success(st.session_state.score_action_msg)
+    st.toast(st.session_state.score_action_msg, icon="✅")
     del st.session_state.score_action_msg
 
 
