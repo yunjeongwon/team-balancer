@@ -12,6 +12,12 @@ st.caption(
     "표 헤더(이름/점수)를 클릭하면 정렬됩니다."
 )
 
+# 직전 추가/수정/삭제 결과 메시지. st.rerun() 직전의 st.success/toast 호출은
+# rerun에 의해 무시되므로 session_state로 넘겨 여기서 표시한다.
+if "score_action_msg" in st.session_state:
+    st.success(st.session_state.score_action_msg)
+    del st.session_state.score_action_msg
+
 
 def _current_scores() -> dict[str, int]:
     try:
@@ -56,7 +62,7 @@ if upsert_submitted:
         except Exception as e:
             st.error(f"저장 중 오류가 발생했습니다: {e}")
         else:
-            st.success(f"{name} {action}되었습니다. (점수 {int(score)})")
+            st.session_state.score_action_msg = f"{name} {action}되었습니다. (점수 {int(score)})"
             st.rerun()
 
 # --- 삭제 ---
@@ -75,5 +81,5 @@ if delete_submitted:
         except Exception as e:
             st.error(f"저장 중 오류가 발생했습니다: {e}")
         else:
-            st.success(f"{len(to_delete)}명 삭제되었습니다: {', '.join(to_delete)}")
+            st.session_state.score_action_msg = f"{len(to_delete)}명 삭제되었습니다: {', '.join(to_delete)}"
             st.rerun()
