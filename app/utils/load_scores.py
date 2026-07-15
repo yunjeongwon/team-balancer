@@ -12,7 +12,7 @@ load_dotenv()
 OWNER = "yunjeongwon"
 REPO = "team-balancer"
 SCORES_PATH = "data/scores.json"
-BRANCH = "master"
+BRANCH = "scores-data"
 COMMIT_MESSAGE = "chore(scores): update via app"
 _API_BASE = "https://api.github.com"
 

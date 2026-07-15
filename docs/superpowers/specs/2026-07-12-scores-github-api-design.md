@@ -49,7 +49,7 @@ Streamlit Community Cloud는 ephemeral 파일 시스템을 사용한다. 앱이 
 OWNER = "yunjeongwon"
 REPO = "team-balancer"
 SCORES_PATH = "data/scores.json"
-BRANCH = "master"
+BRANCH = "scores-data"
 COMMIT_MESSAGE = "chore(scores): update via app"
 
 def _get_token() -> str | None:
@@ -115,7 +115,7 @@ X-GitHub-Api-Version: 2022-11-28
    {"message": "chore(scores): update via app",
     "content": "<base64 of {"scores": {...}}>",
     "sha": "<조회한 sha>",
-    "branch": "master"}
+    "branch": "scores-data"}
    ```
 3. 응답 200/201 확인. 실패 시 예외 발생.
 

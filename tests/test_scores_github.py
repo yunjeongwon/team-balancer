@@ -42,7 +42,7 @@ def test_load_github_decodes_base64_and_returns_scores(monkeypatch):
     assert result == {"alice": 5, "bob": 3}
     # 올바른 URL 과 ref 파라미터 호출 검증
     _, kwargs = mock_req.get.call_args
-    assert kwargs["params"] == {"ref": "master"}
+    assert kwargs["params"] == {"ref": "scores-data"}
 
 
 def test_save_github_fetches_sha_then_puts(monkeypatch):
@@ -61,7 +61,7 @@ def test_save_github_fetches_sha_then_puts(monkeypatch):
     _, kwargs = mock_req.put.call_args
     body = kwargs["json"]
     assert body["sha"] == "sha-xyz"
-    assert body["branch"] == "master"
+    assert body["branch"] == "scores-data"
     assert body["message"] == "chore(scores): update via app"
     decoded = json.loads(base64.b64decode(body["content"]).decode("utf-8"))
     assert decoded == {"scores": {"alice": 7}}
