@@ -67,6 +67,27 @@ def test_save_github_fetches_sha_then_puts(monkeypatch):
     assert decoded == {"scores": {"alice": 7}}
 
 
+def test_save_scores_merges_onto_latest_and_reuses_sha(monkeypatch):
+    # 핵심: 페이지 로드 스냅샷이 낡았어도 저장 직전 최신(alice=5)을 다시 읽어
+    # 델타(bob)만 얹고, 읽어온 sha 를 PUT 에 재사용한다. GET 도 한 번만.
+    monkeypatch.setenv("GITHUB_TOKEN", "abc")
+    fake = _fake_contents_response({"alice": 5}, sha="sha-latest")
+    with patch.object(ls, "requests") as mock_req:
+        mock_req.get.return_value = MagicMock(json=MagicMock(return_value=fake))
+        mock_req.put.return_value = MagicMock(status_code=200)
+
+        ls.save_scores(updates={"bob": 3})
+
+    # GET 은 정확히 한 번 (sha 재조회 X)
+    assert mock_req.get.call_count == 1
+    _, kwargs = mock_req.put.call_args
+    body = kwargs["json"]
+    assert body["sha"] == "sha-latest"  # 읽어온 sha 재사용
+    decoded = json.loads(base64.b64decode(body["content"]).decode("utf-8"))
+    # 원격 최신 alice 위에 내 델타 bob 이 얹혀야 함 — alice 가 날아가지 않는다
+    assert decoded == {"scores": {"alice": 5, "bob": 3}}
+
+
 def test_load_scores_uses_github_when_token_present(monkeypatch):
     monkeypatch.setenv("GITHUB_TOKEN", "abc")
     with patch.object(ls, "_load_github", return_value={"x": 1}) as gh, \
@@ -85,18 +106,20 @@ def test_load_scores_uses_local_when_no_token(monkeypatch):
 
 def test_save_scores_uses_github_when_token_present(monkeypatch):
     monkeypatch.setenv("GITHUB_TOKEN", "abc")
-    with patch.object(ls, "_save_github") as gh, \
+    with patch.object(ls, "_load_github_with_sha", return_value=({"x": 1}, "s")) as load, \
+         patch.object(ls, "_save_github") as gh, \
          patch.object(ls, "_save_local") as loc:
-        ls.save_scores({"x": 1})
-    assert gh.called and not loc.called
+        ls.save_scores(updates={"x": 1})
+    assert load.called and gh.called and not loc.called
 
 
 def test_save_scores_uses_local_when_no_token(monkeypatch):
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
-    with patch.object(ls, "_save_github") as gh, \
+    with patch.object(ls, "_load_local", return_value={}) as load, \
+         patch.object(ls, "_save_github") as gh, \
          patch.object(ls, "_save_local") as loc:
-        ls.save_scores({"y": 2})
-    assert loc.called and not gh.called
+        ls.save_scores(updates={"y": 2})
+    assert load.called and loc.called and not gh.called
 
 
 def test_load_github_propagates_http_error_on_404(monkeypatch):

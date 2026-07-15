@@ -58,7 +58,7 @@ if upsert_submitted:
     else:
         action = "수정" if name in scores else "추가"
         try:
-            save_scores({**scores, name: int(score)})
+            save_scores(updates={name: int(score)})
         except Exception as e:
             st.error(f"저장 중 오류가 발생했습니다: {e}")
         else:
@@ -77,7 +77,7 @@ if delete_submitted:
     else:
         targets = set(to_delete)
         try:
-            save_scores({k: v for k, v in scores.items() if k not in targets})
+            save_scores(deletes=targets)
         except Exception as e:
             st.error(f"저장 중 오류가 발생했습니다: {e}")
         else:
