@@ -4,6 +4,14 @@ from app.constants import PLACEHOLDER_MEMBER
 from app.schemas.team_schema import TeamSchema
 
 
+def _app():
+    """require_auth() 가 st.stop() 으로 본문 렌더를 막으므로 인증된 상태로 시작한다."""
+    at = AppTest.from_file("app/main.py")
+    at.session_state["authenticated"] = True
+    at.run()
+    return at
+
+
 def _generate(at, members_text):
     at.text_area[0].input(
         f"""
@@ -20,8 +28,7 @@ def _generate_structured(at, request_text):
 
 
 def test_each_new_generation_gets_a_fresh_thread_id(fake_llm):
-    at = AppTest.from_file("app/main.py")
-    at.run()
+    at = _app()
 
     _generate(at, "a b")
     thread_1 = at.session_state["thread_id"]
@@ -33,8 +40,7 @@ def test_each_new_generation_gets_a_fresh_thread_id(fake_llm):
 
 
 def test_structured_textarea_request_reaches_graph(fake_llm):
-    at = AppTest.from_file("app/main.py")
-    at.run()
+    at = _app()
 
     _generate_structured(
         at,
@@ -61,8 +67,7 @@ def test_empty_placeholder_member_is_not_shown_to_the_user(fake_llm):
         TeamSchema(team_a=["a", PLACEHOLDER_MEMBER], team_b=["b", "c"], score_diff=0, reason="fake")
     ]
 
-    at = AppTest.from_file("app/main.py")
-    at.run()
+    at = _app()
     _generate(at, "a b c")
 
     rendered = at.chat_message[-1].markdown[0].value
@@ -70,8 +75,7 @@ def test_empty_placeholder_member_is_not_shown_to_the_user(fake_llm):
 
 
 def test_generated_result_shows_member_scores_and_team_totals(fake_llm):
-    at = AppTest.from_file("app/main.py")
-    at.run()
+    at = _app()
     _generate(at, "a b")
 
     rendered = at.chat_message[-1].markdown[0].value
@@ -83,8 +87,7 @@ def test_generated_result_shows_member_scores_and_team_totals(fake_llm):
 
 
 def test_confirm_adds_scoreless_result_without_changing_previous_message(fake_llm):
-    at = AppTest.from_file("app/main.py")
-    at.run()
+    at = _app()
     _generate(at, "a b")
 
     scored_result = at.chat_message[-1].markdown[0].value
@@ -107,8 +110,7 @@ def test_fail_status_is_surfaced_to_the_user(fake_llm):
         TeamSchema(team_a=["a"], team_b=["b", "c", "d"], score_diff=0, reason="invalid")
     ]
 
-    at = AppTest.from_file("app/main.py")
-    at.run()
+    at = _app()
     _generate(at, "a b c d")
 
     at.chat_input[0].set_value("다시 섞어줘").run()
@@ -119,8 +121,7 @@ def test_fail_status_is_surfaced_to_the_user(fake_llm):
 
 
 def test_feedback_reaches_the_prompt_as_plain_text_not_a_dict(fake_llm):
-    at = AppTest.from_file("app/main.py")
-    at.run()
+    at = _app()
     _generate(at, "a b")
 
     at.chat_input[0].set_value("a와 b는 같은 팀으로").run()
