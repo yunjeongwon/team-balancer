@@ -9,13 +9,18 @@ from app.logging_config import configure_run_logging
 from app.utils.compute_team_score_sum import compute_team_score_sum
 from app.utils.parse_team_request import parse_team_request
 from pathlib import Path
+import os
 import uuid
 
 load_dotenv()
 
 @st.cache_resource
-def get_app(graph_code_stamp: tuple[tuple[str, int], ...]):
-    return graph_builder()
+def get_app(graph_code_stamp: tuple[tuple[str, int], ...], use_gpt: bool):
+    return graph_builder(use_gpt)
+
+
+def _use_gpt() -> bool:
+    return os.environ.get("USE_GPT") == "1" or st.session_state.get("use_gpt", False)
 
 
 def graph_code_stamp() -> tuple[tuple[str, int], ...]:
@@ -65,7 +70,7 @@ def _format_member_with_score(member: str, member_scores: dict[str, int]) -> str
     return f"{member}({member_scores[member]})"
 
 
-app = get_app(graph_code_stamp())
+app = get_app(graph_code_stamp(), _use_gpt())
 
 require_auth()
 
@@ -100,9 +105,15 @@ if "config" not in st.session_state:
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-if team_create_button_clicked:
+if "generation_error" not in st.session_state:
+    st.session_state.generation_error = None
+
+should_generate = team_create_button_clicked or st.session_state.pop("pending_generate", False)
+
+if should_generate:
     st.session_state.awaiting_approval = False
     st.session_state.config = None
+    st.session_state.generation_error = None
 
     if not team_request_input.strip():
         st.warning("팀원을 입력해주세요.")
@@ -157,8 +168,16 @@ if team_create_button_clicked:
         except Exception as e:
             if msg:
                 msg.empty()
-            st.error("알 수 없는 오류가 발생했습니다. 입력을 수정한 후 다시 팀 생성 버튼을 눌러주세요.")
-            st.exception(e)
+            st.session_state.generation_error = e
+
+if st.session_state.get("generation_error") is not None:
+    st.error("Gemini 사용량 한도 등 오류가 발생했습니다. GPT로 전환해 다시 시도해보세요.")
+    st.exception(st.session_state.generation_error)
+
+    if not _use_gpt() and st.button("GPT로 전환하고 재시도"):
+        st.session_state.use_gpt = True
+        st.session_state.pending_generate = True
+        st.rerun()
 
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):

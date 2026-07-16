@@ -1,6 +1,9 @@
+import streamlit as st
 from streamlit.testing.v1 import AppTest
 
+import app.graph.builder as builder_mod
 from app.constants import PLACEHOLDER_MEMBER
+from app.schemas.evaluation_schema import EvaluationSchema
 from app.schemas.team_schema import TeamSchema
 
 
@@ -129,3 +132,49 @@ def test_feedback_reaches_the_prompt_as_plain_text_not_a_dict(fake_llm):
     retry_prompt_text = fake_llm.team_prompts[-1][-1].content
     assert "a와 b는 같은 팀으로" in retry_prompt_text
     assert "{'feedback'" not in retry_prompt_text
+
+
+class _QuotaFakeLLM:
+    """Gemini(use_gpt=False)는 할당량 초과로 실패, GPT(use_gpt=True)는 성공."""
+
+    def __init__(self, use_gpt):
+        self.use_gpt = use_gpt
+
+    def with_structured_output(self, schema):
+        return self
+
+    def invoke(self, prompt):
+        if not self.use_gpt:
+            raise RuntimeError("simulated quota exceeded")
+        return EvaluationSchema(status="PASS", reason="gpt ok")
+
+
+def _app_with_failing_gemini(monkeypatch):
+    st.cache_resource.clear()
+    monkeypatch.setattr(builder_mod, "get_model", lambda use_gpt=False: _QuotaFakeLLM(use_gpt))
+
+    at = AppTest.from_file("app/main.py")
+    at.session_state["authenticated"] = True
+    at.run()
+    return at
+
+
+def test_switch_button_renders_on_generation_error(monkeypatch):
+    at = _app_with_failing_gemini(monkeypatch)
+
+    _generate_structured(at, "팀원:\na\nb\nc\nd\n")
+
+    assert "GPT로 전환하고 재시도" in [b.label for b in at.button]
+
+
+def test_switch_button_click_switches_to_gpt_and_regenerates(monkeypatch):
+    at = _app_with_failing_gemini(monkeypatch)
+
+    _generate_structured(at, "팀원:\na\nb\nc\nd\n")
+
+    switch_index = [b.label for b in at.button].index("GPT로 전환하고 재시도")
+    at.button[switch_index].click().run()
+
+    assert at.session_state["use_gpt"] is True
+    assert at.session_state["awaiting_approval"] is True
+    assert "GPT로 전환하고 재시도" not in [b.label for b in at.button]
