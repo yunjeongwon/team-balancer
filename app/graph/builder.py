@@ -10,10 +10,10 @@ from app.schemas.evaluation_schema import EvaluationSchema
 from app.schemas.team_schema import TeamSchema
 from langgraph.checkpoint.memory import InMemorySaver
 
-def graph_builder():
+def graph_builder(use_gpt: bool = False):
     builder = StateGraph(TeamState)
 
-    llm = get_model()
+    llm = get_model(use_gpt)
     team_generator_llm = llm.with_structured_output(TeamSchema)
     evaluator_llm = llm.with_structured_output(EvaluationSchema)
 
