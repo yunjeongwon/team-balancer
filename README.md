@@ -364,8 +364,10 @@ pip install -r requirements.txt
 
 ```env
 GOOGLE_API_KEY=your_key
-OPENAI_API_KEY=your_key   # USE_GPT=1 로 GPT 전환 시에만 필요
+OPENAI_API_KEY=your_key   # GPT 전환 시 필요
 ```
+
+기본은 Gemini입니다. 팀 생성 중 Gemini 오류(무료티어 하루 할당량 초과 등)가 나면 화면에 **"GPT로 전환하고 재시도"** 버튼이 나타나고, 누르면 해당 세션에서 GPT로 전환해 자동으로 다시 생성합니다. 앱을 처음부터 GPT로 띄우려면 `USE_GPT=1`을 설정하세요.
 
 ### 4. 실행
 
@@ -403,7 +405,7 @@ GITHUB_TOKEN    = "..."
 
 > `APP_PASSWORD`는 로그인 게이트용 공유 비밀번호입니다. 접근을 허용할 사람에게만 알려주세요.
 
-> Gemini를 못 쓸 때 `USE_GPT = "1"` 한 줄을 Secrets에 추가하면 GPT(`OPENAI_API_KEY`)로 전환됩니다.
+> Gemini 오류(할당량 초과 등) 시 앱 화면의 **"GPT로 전환하고 재시도"** 버튼으로 그 세션에서 GPT(`OPENAI_API_KEY`)로 전환할 수 있습니다. 세션 단위라 앱이 재시작되면 다시 Gemini로 돌아갑니다. 항상 GPT로 띄우려면 `USE_GPT = "1"` 한 줄을 Secrets에 추가하세요.
 
 ### 3. 점수 갱신
 
