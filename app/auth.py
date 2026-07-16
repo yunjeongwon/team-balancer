@@ -28,8 +28,11 @@ def require_auth() -> None:
         except StreamlitSecretNotFoundError:
             expected_pw = ""
 
-    pw = st.text_input("비밀번호를 입력하세요", type="password")
-    if st.button("로그인"):
+    with st.form("login"):
+        pw = st.text_input("비밀번호를 입력하세요", type="password")
+        submitted = st.form_submit_button("로그인")
+
+    if submitted:
         if pw and pw == expected_pw:
             st.session_state.authenticated = True
             st.rerun()
