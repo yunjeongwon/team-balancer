@@ -1,3 +1,10 @@
+import sys
+from pathlib import Path
+
+# Streamlit Cloud는 레포 루트를 sys.path에 넣지 않으므로 app.* 임포트 전에 직접 추가한다.
+# 페이지 스크립트는 main.py를 거치지 않고 독립 실행될 수 있어 여기에도 필요하다.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
 import pandas as pd
 import streamlit as st
 

@@ -1,3 +1,9 @@
+import sys
+from pathlib import Path
+
+# Streamlit Cloud는 레포 루트를 sys.path에 넣지 않으므로 app.* 임포트 전에 직접 추가한다.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from langgraph.types import Command
 import streamlit as st
 from dotenv import load_dotenv
