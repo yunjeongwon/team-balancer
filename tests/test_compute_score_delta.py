@@ -67,3 +67,20 @@ def test_score_coerced_to_int():
     _adds, edits, _deletes = compute_score_delta(current, rows)
     assert edits == {"김": 7}
     assert isinstance(edits["김"], int)
+
+
+def test_blank_score_on_existing_player_is_noop_not_delete():
+    # 점수 셀을 비운 기존 선수: 삭제되지 않고, 수정도 아니다 (기존 값 유지).
+    current = {"김": 5}
+    rows = [_row("김", float("nan"))]
+    adds, edits, deletes = compute_score_delta(current, rows)
+    assert adds == {}
+    assert edits == {}
+    assert deletes == set()
+
+
+def test_none_score_is_treated_as_blank():
+    current = {"김": 5}
+    rows = [_row("김", None)]
+    adds, edits, deletes = compute_score_delta(current, rows)
+    assert (adds, edits, deletes) == ({}, {}, set())

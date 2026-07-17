@@ -77,3 +77,23 @@ def test_revert_clears_pending(tmp_path, monkeypatch):
 def test_save_button_disabled_when_no_changes(tmp_path, monkeypatch):
     at = _run(tmp_path, monkeypatch, {"김동영": 7})
     assert _button(at, "저장").disabled is True
+
+
+def test_save_failure_preserves_pending(tmp_path, monkeypatch):
+    at = _run(tmp_path, monkeypatch, {"김동영": 7})
+    at.text_input[0].set_value("신규").run()
+    _button(at, "추가").click().run()
+    assert at.session_state["pending_adds"] == [{"이름": "신규", "점수": 4}]
+
+    def _boom(*args, **kwargs):
+        raise RuntimeError("network down")
+
+    # 페이지는 매 rerun 마다 `from app.utils.load_scores import save_scores` 를
+    # 재실행하므로 원본 모듈의 save_scores 를 패치하면 다음 run 에서 반영된다.
+    monkeypatch.setattr(ls, "save_scores", _boom)
+
+    _button(at, "저장").click().run()
+
+    assert any("저장 중 오류" in e.value for e in at.error)
+    # 실패 시 rerun/정리 없이 편집이 보존되어야 한다.
+    assert at.session_state["pending_adds"] == [{"이름": "신규", "점수": 4}]

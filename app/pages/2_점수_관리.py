@@ -82,7 +82,7 @@ edited = st.data_editor(
     column_config={
         "이름": st.column_config.TextColumn("이름"),
         "점수": st.column_config.NumberColumn(
-            "점수", min_value=1, max_value=7, step=1, format="%d"
+            "점수", min_value=1, max_value=7, step=1, format="%d", required=True
         ),
         "삭제": st.column_config.CheckboxColumn("삭제"),
     },
