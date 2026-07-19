@@ -17,7 +17,7 @@
 - 그래프(`state.py`, `score_fetch_node.py`, `builder.py`)는 **변경하지 않는다.** `default_score` 주입 지점은 `main.py` 한 곳.
 - Git: `master`에 직접 커밋. push는 사용자 확인 후. 브랜치/PR 없음.
 - 테스트: 실제 LLM 금지. `tests/conftest.py`의 `RecordingFakeLLM`/`fake_llm` 픽스처 사용.
-- 베이스라인: `uv run pytest -q` → `54 passed`.
+- 베이스라인: `uv run pytest -q` → `70 passed`.
 
 ---
 
@@ -238,7 +238,7 @@ Expected: PASS (전부). `test_save_scores.py`는 수정 없이 통과해야 한
 - [ ] **Step 5: 전체 스위트 회귀 확인**
 
 Run: `uv run pytest -q`
-Expected: `54 passed` (동작 불변 리팩터).
+Expected: `70 passed` (동작 불변 리팩터).
 
 - [ ] **Step 6: 커밋**
 
@@ -419,7 +419,7 @@ Expected: `6 passed`.
 - [ ] **Step 6: 전체 스위트 확인**
 
 Run: `uv run pytest -q`
-Expected: `60 passed`.
+Expected: `76 passed`.
 
 - [ ] **Step 7: 커밋**
 
@@ -501,7 +501,7 @@ Expected: PASS (전부).
 - [ ] **Step 5: 전체 스위트 확인**
 
 Run: `uv run pytest -q`
-Expected: `60 passed`.
+Expected: `76 passed`.
 
 - [ ] **Step 6: 커밋**
 
@@ -614,7 +614,7 @@ Expected: PASS (전부).
 - [ ] **Step 5: 전체 스위트 확인**
 
 Run: `uv run pytest -q`
-Expected: `60 passed`.
+Expected: `76 passed`.
 
 - [ ] **Step 6: 커밋**
 
@@ -764,7 +764,7 @@ Expected: PASS (전부, 신규 3개 포함).
 - [ ] **Step 6: 전체 스위트 확인**
 
 Run: `uv run pytest -q`
-Expected: `63 passed`.
+Expected: `79 passed`.
 
 - [ ] **Step 7: 커밋**
 
@@ -837,7 +837,7 @@ Expected: `1 passed`.
 - [ ] **Step 5: 전체 스위트 확인**
 
 Run: `uv run pytest -q`
-Expected: `64 passed`.
+Expected: `80 passed`.
 
 - [ ] **Step 6: 커밋**
 
