@@ -166,8 +166,8 @@ app.invoke(
 
 - [2_점수_관리.py:47](../../../app/pages/2_점수_관리.py#L47) "선수 추가" 폼의
   `number_input(..., max_value=7)` → `max_value=max_score`. 같은 줄 `value=4`(신규 추가
-  시 프리필 점수)는 `max_score`보다 커지면 Streamlit이 에러를 내므로
-  `value=min(default_score, max_score)`로 안전화한다(신규 선수 프리필로도 자연스럽다).
+  시 프리필 점수)는 `value=default_score`로 바꾼다 — 신규 선수를 기본 점수로 미리 채운다.
+  설정 저장 시 `default_score ≤ max_score`를 검증하므로 프리필이 상한을 넘지 않는다.
 - [2_점수_관리.py:85](../../../app/pages/2_점수_관리.py#L85) `data_editor`의
   `NumberColumn(..., max_value=7)` → `max_value=max_score`.
 
