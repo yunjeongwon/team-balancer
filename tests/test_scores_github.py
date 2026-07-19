@@ -33,14 +33,13 @@ def test_headers_includes_authorization_and_accept(monkeypatch):
     assert h["Accept"] == "application/vnd.github+json"
 
 
-def test_load_github_decodes_base64_and_returns_scores(monkeypatch):
+def test_load_github_returns_full_payload(monkeypatch):
     monkeypatch.setenv("GITHUB_TOKEN", "abc")
     fake = _fake_contents_response({"alice": 5, "bob": 3})
     with patch.object(ls, "requests") as mock_req:
         mock_req.get.return_value = MagicMock(json=MagicMock(return_value=fake))
         result = ls._load_github()
-    assert result == {"alice": 5, "bob": 3}
-    # 올바른 URL 과 ref 파라미터 호출 검증
+    assert result == {"scores": {"alice": 5, "bob": 3}}
     _, kwargs = mock_req.get.call_args
     assert kwargs["params"] == {"ref": "scores-data"}
 
@@ -52,7 +51,7 @@ def test_save_github_fetches_sha_then_puts(monkeypatch):
         mock_req.get.return_value = MagicMock(json=MagicMock(return_value=fake_get))
         mock_req.put.return_value = MagicMock(status_code=200)
 
-        ls._save_github({"alice": 7})
+        ls._save_github({"scores": {"alice": 7}})
 
     # 1) GET 호출 (sha 조회)
     assert mock_req.get.called
@@ -90,7 +89,7 @@ def test_save_scores_merges_onto_latest_and_reuses_sha(monkeypatch):
 
 def test_load_scores_uses_github_when_token_present(monkeypatch):
     monkeypatch.setenv("GITHUB_TOKEN", "abc")
-    with patch.object(ls, "_load_github", return_value={"x": 1}) as gh, \
+    with patch.object(ls, "_load_github", return_value={"scores": {"x": 1}}) as gh, \
          patch.object(ls, "_load_local") as loc:
         assert ls.load_scores() == {"x": 1}
     assert gh.called and not loc.called
@@ -99,7 +98,7 @@ def test_load_scores_uses_github_when_token_present(monkeypatch):
 def test_load_scores_uses_local_when_no_token(monkeypatch):
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
     with patch.object(ls, "_load_github") as gh, \
-         patch.object(ls, "_load_local", return_value={"y": 2}) as loc:
+         patch.object(ls, "_load_local", return_value={"scores": {"y": 2}}) as loc:
         assert ls.load_scores() == {"y": 2}
     assert loc.called and not gh.called
 
