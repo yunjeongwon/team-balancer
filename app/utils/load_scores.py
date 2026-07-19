@@ -6,6 +6,8 @@ from pathlib import Path
 import requests
 from dotenv import load_dotenv
 
+from app.constants import DEFAULT_SCORE, MAX_SCORE
+
 load_dotenv()
 
 # --- GitHub 백엔드 설정 ---
@@ -122,6 +124,34 @@ def _load_full() -> dict:
 
 def load_scores() -> dict[str, int]:
     return _load_full().get("scores", {})
+
+
+def load_settings() -> dict:
+    """{"default_score": int, "max_score": int} 반환. 파일/키 부재 시 상수 폴백."""
+    try:
+        settings = _load_full().get("settings", {})
+    except FileNotFoundError:
+        settings = {}
+    return {
+        "default_score": settings.get("default_score", DEFAULT_SCORE),
+        "max_score": settings.get("max_score", MAX_SCORE),
+    }
+
+
+def save_settings(default_score: int, max_score: int) -> None:
+    """파일 전체를 (재)읽어 settings 만 교체하고 저장한다. scores 등은 보존된다."""
+    settings = {"default_score": default_score, "max_score": max_score}
+    if _get_token():
+        data, sha = _load_github_with_sha()
+        data["settings"] = settings
+        _save_github(data, sha=sha)
+    else:
+        try:
+            data = _load_local()
+        except FileNotFoundError:
+            data = {}
+        data["settings"] = settings
+        _save_local(data)
 
 
 def _apply_delta(
