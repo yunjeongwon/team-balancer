@@ -10,7 +10,7 @@ import streamlit as st
 
 from app.auth import require_auth
 from app.utils.compute_score_delta import compute_score_delta
-from app.utils.load_scores import load_scores, load_settings, save_scores
+from app.utils.load_scores import load_scores, load_settings, save_scores, save_settings
 
 require_auth()
 
@@ -67,6 +67,41 @@ with st.expander("선수 추가"):
                 {"이름": name, "점수": int(new_score)}
             )
             st.rerun()
+
+# --- 기본 설정: 미등록자 기본 점수 / 최고 점수 (즉시 저장) ---
+with st.expander("기본 설정"):
+    with st.form("settings_form"):
+        default_input = st.number_input(
+            "미등록 인원에게 적용할 점수",
+            min_value=1, max_value=max_score, value=default_score, step=1,
+            key="default_score_input",
+        )
+        max_input = st.number_input(
+            "최고 점수",
+            min_value=1, max_value=20, value=max_score, step=1,
+            key="max_score_input",
+        )
+        settings_submitted = st.form_submit_button("설정 저장", type="primary")
+
+    if settings_submitted:
+        if default_input > max_input:
+            st.error("기본 점수는 최고 점수보다 클 수 없습니다.")
+        else:
+            over = sorted(n for n, s in scores.items() if s > max_input)
+            try:
+                save_settings(
+                    default_score=int(default_input), max_score=int(max_input)
+                )
+            except Exception as e:
+                st.error(f"저장 중 오류가 발생했습니다: {e}")
+            else:
+                msg = f"설정이 저장되었습니다. (기본 {int(default_input)} · 최고 {int(max_input)})"
+                if over:
+                    msg += (
+                        f" ⚠️ {len(over)}명이 최고점을 초과합니다: {', '.join(over)}"
+                    )
+                st.session_state.score_action_msg = msg
+                st.rerun()
 
 # --- 편집 표: 기존 선수(이름순) + 추가 대기 행(끝에 append) ---
 table_rows = [
