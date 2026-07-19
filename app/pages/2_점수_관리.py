@@ -10,13 +10,17 @@ import streamlit as st
 
 from app.auth import require_auth
 from app.utils.compute_score_delta import compute_score_delta
-from app.utils.load_scores import load_scores, save_scores
+from app.utils.load_scores import load_scores, load_settings, save_scores
 
 require_auth()
 
+_settings = load_settings()
+default_score = _settings["default_score"]
+max_score = _settings["max_score"]
+
 st.title("점수 관리")
 st.caption(
-    "선수 이름과 실력 점수(1~7)를 관리합니다. 점수 셀을 눌러 수정하고, 삭제할 선수는 "
+    f"선수 이름과 실력 점수(1~{max_score})를 관리합니다. 점수 셀을 눌러 수정하고, 삭제할 선수는 "
     "삭제 열을 체크한 뒤 저장하세요. 표 헤더(이름/점수)를 클릭하면 정렬됩니다."
 )
 
@@ -44,7 +48,9 @@ scores = _current_scores()
 with st.expander("선수 추가"):
     with st.form("add_form", clear_on_submit=True):
         new_name = st.text_input("이름")
-        new_score = st.number_input("점수", min_value=1, max_value=7, value=4, step=1)
+        new_score = st.number_input(
+            "점수", min_value=1, max_value=max_score, value=default_score, step=1
+        )
         add_submitted = st.form_submit_button("추가")
 
     if add_submitted:
@@ -82,7 +88,7 @@ edited = st.data_editor(
     column_config={
         "이름": st.column_config.TextColumn("이름"),
         "점수": st.column_config.NumberColumn(
-            "점수", min_value=1, max_value=7, step=1, format="%d", required=True
+            "점수", min_value=1, max_value=max_score, step=1, format="%d", required=True
         ),
         "삭제": st.column_config.CheckboxColumn("삭제"),
     },

@@ -56,19 +56,19 @@ def test_add_then_save_persists(tmp_path, monkeypatch):
     at.session_state["authenticated"] = True
     at.run()
 
-    at.text_input[0].set_value("신규").run()  # 점수는 기본값 4
+    at.text_input[0].set_value("신규").run()  # 점수는 기본값 3(=default_score)
     _button(at, "추가").click().run()
     _button(at, "저장").click().run()
 
     saved = json.loads(fake_path.read_text(encoding="utf-8"))["scores"]
-    assert saved == {"김동영": 7, "신규": 4}
+    assert saved == {"김동영": 7, "신규": 3}
 
 
 def test_revert_clears_pending(tmp_path, monkeypatch):
     at = _run(tmp_path, monkeypatch, {"김동영": 7})
     at.text_input[0].set_value("신규").run()
     _button(at, "추가").click().run()
-    assert at.session_state["pending_adds"] == [{"이름": "신규", "점수": 4}]
+    assert at.session_state["pending_adds"] == [{"이름": "신규", "점수": 3}]
 
     _button(at, "되돌리기").click().run()
     assert at.session_state["pending_adds"] == []
@@ -83,7 +83,7 @@ def test_save_failure_preserves_pending(tmp_path, monkeypatch):
     at = _run(tmp_path, monkeypatch, {"김동영": 7})
     at.text_input[0].set_value("신규").run()
     _button(at, "추가").click().run()
-    assert at.session_state["pending_adds"] == [{"이름": "신규", "점수": 4}]
+    assert at.session_state["pending_adds"] == [{"이름": "신규", "점수": 3}]
 
     def _boom(*args, **kwargs):
         raise RuntimeError("network down")
@@ -96,4 +96,4 @@ def test_save_failure_preserves_pending(tmp_path, monkeypatch):
 
     assert any("저장 중 오류" in e.value for e in at.error)
     # 실패 시 rerun/정리 없이 편집이 보존되어야 한다.
-    assert at.session_state["pending_adds"] == [{"이름": "신규", "점수": 4}]
+    assert at.session_state["pending_adds"] == [{"이름": "신규", "점수": 3}]
