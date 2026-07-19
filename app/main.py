@@ -13,6 +13,7 @@ from app.exceptions.validation import ValidationError
 from app.graph.builder import graph_builder
 from app.logging_config import configure_run_logging
 from app.utils.compute_team_score_sum import compute_team_score_sum
+from app.utils.load_scores import load_settings
 from app.utils.parse_team_request import parse_team_request
 from pathlib import Path
 import os
@@ -149,7 +150,7 @@ if should_generate:
                     "members_input": parsed_request["members_input"],
                     "must_link_groups_input": parsed_request["must_link_groups_input"],
                     "cannot_link_groups_input": parsed_request["cannot_link_groups_input"],
-                    "default_score": 4,
+                    "default_score": load_settings()["default_score"],
                 },
                 config=config,
             )

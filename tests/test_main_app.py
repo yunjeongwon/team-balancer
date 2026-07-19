@@ -82,11 +82,11 @@ def test_generated_result_shows_member_scores_and_team_totals(fake_llm):
     _generate(at, "a b")
 
     rendered = at.chat_message[-1].markdown[0].value
-    assert "🔵 블루팀 (총점: 4)" in rendered
-    assert "🟡 골드팀 (총점: 4)" in rendered
-    assert "a(4)" in rendered
-    assert "b(4)" in rendered
-    assert "4점" not in rendered
+    assert "🔵 블루팀 (총점: 3)" in rendered
+    assert "🟡 골드팀 (총점: 3)" in rendered
+    assert "a(3)" in rendered
+    assert "b(3)" in rendered
+    assert "3점" not in rendered
 
 
 def test_confirm_adds_scoreless_result_without_changing_previous_message(fake_llm):
@@ -98,12 +98,12 @@ def test_confirm_adds_scoreless_result_without_changing_previous_message(fake_ll
     at.button[1].click().run()
 
     assert at.chat_message[-2].markdown[0].value == scored_result
-    assert "총점: 4" in at.chat_message[-2].markdown[0].value
-    assert "a(4)" in at.chat_message[-2].markdown[0].value
+    assert "총점: 3" in at.chat_message[-2].markdown[0].value
+    assert "a(3)" in at.chat_message[-2].markdown[0].value
 
     rendered = at.chat_message[-1].markdown[0].value
     assert "총점" not in rendered
-    assert "(4)" not in rendered
+    assert "(3)" not in rendered
     assert "🔵 블루팀" in rendered
     assert "🟡 골드팀" in rendered
 
