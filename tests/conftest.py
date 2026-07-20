@@ -61,8 +61,18 @@ def isolate_run_logs(tmp_path, monkeypatch):
 
 @pytest.fixture(autouse=True)
 def isolate_github_token(monkeypatch):
-    """점수 영속성 테스트가 .env 의 GITHUB_TOKEN 에 영향받지 않도록 env 에서 제거.
-    load_scores.load_dotenv() 가 import 시 .env 를 env 로 로드하므로, 이를 가리지 않으면
-    로컬 분기 테스트(test_save_scores)가 github 분기로 빠져 requests 호출을 시도한다.
-    github 분기를 테스트하려면 각 테스트가 monkeypatch.setenv 로 명시적으로 설정."""
+    """점수 영속성 테스트가 .env 의 GITHUB_TOKEN 에 영향받지 않도록 격리한다.
+
+    두 겹으로 막는다:
+    1) env 에서 GITHUB_TOKEN 을 제거한다.
+    2) dotenv.load_dotenv 를 no-op 으로 만든다. main.py 는 런타임에 load_dotenv() 를
+       호출하므로, AppTest.from_file("app/main.py") 가 main.py 를 재실행할 때마다 .env 의
+       토큰이 os.environ 에 다시 주입되어 (1)을 무효화하고, load_settings/load_scores 가
+       실제 GitHub 백엔드(프로덕션 scores-data 브랜치)로 빠진다. 이를 막지 않으면 테스트가
+       프로덕션 데이터를 읽고 최악의 경우 쓴다.
+
+    github 분기를 테스트하려면 각 테스트가 monkeypatch.setenv 로 명시적으로 토큰을 설정한다."""
+    import dotenv
+
+    monkeypatch.setattr(dotenv, "load_dotenv", lambda *args, **kwargs: None)
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)

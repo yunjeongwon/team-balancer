@@ -178,3 +178,15 @@ def test_switch_button_click_switches_to_gpt_and_regenerates(monkeypatch):
     assert at.session_state["use_gpt"] is True
     assert at.session_state["awaiting_approval"] is True
     assert "GPT로 전환하고 재시도" not in [b.label for b in at.button]
+
+
+def test_apptest_main_does_not_reinject_github_token(fake_llm):
+    """회귀 방지: main.py 의 런타임 load_dotenv() 가 .env 의 GITHUB_TOKEN 을 다시 주입해
+    테스트가 실제 GitHub 백엔드(프로덕션 scores-data 브랜치)로 빠지지 않아야 한다.
+    isolate_github_token 픽스처가 load_dotenv 를 무력화하므로, main.py 실행 후에도
+    _get_token() 은 None 이어야 한다."""
+    from app.utils import load_scores as ls
+
+    at = _app()
+
+    assert ls._get_token() is None
