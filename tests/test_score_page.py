@@ -116,6 +116,9 @@ def test_settings_save_persists(tmp_path, monkeypatch):
     raw = json.loads(fake_path.read_text(encoding="utf-8"))
     assert raw["settings"] == {"default_score": 2, "max_score": 6}
     assert raw["scores"] == {"김동영": 7}  # scores 보존
+    assert at.toast[0].value == (
+        "설정이 저장되었습니다. (기본 2 · 최고 6) ⚠️ 1명이 최고점을 초과합니다: 김동영"
+    )
 
 
 def test_settings_rejects_default_above_max(tmp_path, monkeypatch):

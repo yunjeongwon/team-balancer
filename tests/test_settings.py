@@ -74,3 +74,22 @@ def test_save_scores_github_preserves_settings(monkeypatch):
     decoded = json.loads(base64.b64decode(kwargs["json"]["content"]).decode("utf-8"))
     assert decoded["settings"] == {"default_score": 3, "max_score": 7}
     assert decoded["scores"] == {"alice": 5, "bob": 2}
+
+
+def test_save_settings_github_preserves_scores(monkeypatch):
+    monkeypatch.setenv("GITHUB_TOKEN", "abc")
+    full = {"scores": {"alice": 5}, "settings": {"default_score": 4, "max_score": 7}}
+    content = base64.b64encode(
+        json.dumps(full, ensure_ascii=False).encode("utf-8")
+    ).decode("ascii")
+    fake = {"content": content, "sha": "sha-1", "encoding": "base64"}
+    with patch.object(ls, "requests") as mock_req:
+        mock_req.get.return_value = MagicMock(json=MagicMock(return_value=fake))
+        mock_req.put.return_value = MagicMock(status_code=200)
+        ls.save_settings(default_score=2, max_score=6)
+
+    _, kwargs = mock_req.put.call_args
+    decoded = json.loads(base64.b64decode(kwargs["json"]["content"]).decode("utf-8"))
+    assert decoded["scores"] == {"alice": 5}
+    assert decoded["settings"] == {"default_score": 2, "max_score": 6}
+    assert kwargs["json"]["sha"] == "sha-1"
