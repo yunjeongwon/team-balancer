@@ -101,6 +101,24 @@ def test_generated_result_distinguishes_registered_and_default_scores(fake_llm, 
     assert "b(3 · 기본)" in rendered
 
 
+def test_generated_result_handles_legacy_state_without_score_sources(fake_llm, monkeypatch):
+    original_score_fetch_node = builder_mod.score_fetch_node
+
+    def legacy_score_fetch_node(state):
+        result = original_score_fetch_node(state)
+        result.pop("member_score_sources")
+        return result
+
+    monkeypatch.setattr(builder_mod, "score_fetch_node", legacy_score_fetch_node)
+
+    at = _app()
+    _generate(at, "a b")
+
+    rendered = at.chat_message[-1].markdown[0].value
+    assert "a(3 · 기본)" in rendered
+    assert "b(3 · 기본)" in rendered
+
+
 def test_confirm_adds_scoreless_result_without_changing_previous_message(fake_llm):
     at = _app()
     _generate(at, "a b")

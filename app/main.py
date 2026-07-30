@@ -55,7 +55,9 @@ def build_team_message(values: dict, include_scores: bool = True) -> str:
 
     if include_scores:
         member_scores = values["member_scores"]
-        member_score_sources = values["member_score_sources"]
+        # 이전 실행 상태에는 이 필드가 없을 수 있다. 점수 출처가 누락되면
+        # 등록 점수가 아닌 기본 점수로 안전하게 표시한다.
+        member_score_sources = values.get("member_score_sources", {})
         team_a = " ".join(
             _format_member_with_score(member, member_scores, member_score_sources)
             for member in team_a_members
@@ -85,7 +87,7 @@ def _format_member_with_score(
     member_scores: dict[str, int],
     member_score_sources: dict[str, str],
 ) -> str:
-    source_label = "등록" if member_score_sources[member] == "registered" else "기본"
+    source_label = "등록" if member_score_sources.get(member) == "registered" else "기본"
     return f"{member}({member_scores[member]} · {source_label})"
 
 
