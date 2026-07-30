@@ -59,11 +59,21 @@ def build_team_message(values: dict, include_scores: bool = True) -> str:
         # 등록 점수가 아닌 기본 점수로 안전하게 표시한다.
         member_score_sources = values.get("member_score_sources", {})
         team_a = " ".join(
-            _format_member_with_score(member, member_scores, member_score_sources)
+            _format_member_with_score(
+                member,
+                member_scores,
+                member_score_sources,
+                values["default_score"],
+            )
             for member in team_a_members
         )
         team_b = " ".join(
-            _format_member_with_score(member, member_scores, member_score_sources)
+            _format_member_with_score(
+                member,
+                member_scores,
+                member_score_sources,
+                values["default_score"],
+            )
             for member in team_b_members
         )
         team_a_title = f"🔵 블루팀 (총점: {compute_team_score_sum(team_a_members, member_scores)})"
@@ -86,9 +96,14 @@ def _format_member_with_score(
     member: str,
     member_scores: dict[str, int],
     member_score_sources: dict[str, str],
+    default_score: int,
 ) -> str:
+    score = member_scores[member]
+    if score != default_score:
+        return f"{member}({score})"
+
     source_label = "등록" if member_score_sources.get(member) == "registered" else "기본"
-    return f"{member}({member_scores[member]} · {source_label})"
+    return f"{member}({score} · {source_label})"
 
 
 app = get_app(graph_code_stamp(), _use_gpt())

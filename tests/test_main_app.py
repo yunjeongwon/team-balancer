@@ -101,6 +101,18 @@ def test_generated_result_distinguishes_registered_and_default_scores(fake_llm, 
     assert "b(3 · 기본)" in rendered
 
 
+def test_generated_result_marks_score_source_only_at_default_score(fake_llm, monkeypatch):
+    monkeypatch.setattr(score_fetch_mod, "load_scores", lambda: {"a": 3, "b": 5})
+
+    at = _app()
+    _generate(at, "a b")
+
+    rendered = at.chat_message[-1].markdown[0].value
+    assert "a(3 · 등록)" in rendered
+    assert "b(5)" in rendered
+    assert "b(5 ·" not in rendered
+
+
 def test_generated_result_handles_legacy_state_without_score_sources(fake_llm, monkeypatch):
     original_score_fetch_node = builder_mod.score_fetch_node
 
