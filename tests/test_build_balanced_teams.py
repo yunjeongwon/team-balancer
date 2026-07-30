@@ -1,3 +1,4 @@
+import app.utils.build_balanced_teams as balanced_teams_module
 from app.utils.build_balanced_teams import build_balanced_teams
 from app.utils.validate_team_result import validate_team_result
 
@@ -79,3 +80,25 @@ def test_raises_when_constraints_make_balanced_split_impossible():
         assert "유효한 팀 조합을 찾을 수 없습니다" in str(error)
     else:
         raise AssertionError("Expected impossible constraints to raise ValueError")
+
+
+def test_randomly_selects_among_equally_optimal_teams(monkeypatch):
+    selections = []
+
+    def select_last(candidates):
+        selections.append(candidates)
+        return candidates[-1]
+
+    monkeypatch.setattr(balanced_teams_module.random, "choice", select_last)
+
+    result = build_balanced_teams(
+        members=["a", "b", "c", "d"],
+        member_scores={"a": 3, "b": 3, "c": 3, "d": 3},
+        must_link_groups=[],
+        cannot_link_groups=[],
+    )
+
+    assert len(selections) == 1
+    assert len(selections[0]) > 1
+    assert result == selections[0][-1]
+    assert result.score_diff == 0

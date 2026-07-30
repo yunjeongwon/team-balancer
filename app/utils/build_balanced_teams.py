@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from itertools import combinations
+import random
 
 from app.utils.compute_team_score_sum import compute_team_score_sum
 from app.utils.validate_team_result import validate_team_result
@@ -20,8 +21,8 @@ def build_balanced_teams(
     cannot_link_groups: list[list[str]],
 ) -> BalancedTeamResult:
     team_size = len(members) // 2
-    best_result = None
     best_sort_key = None
+    best_results = []
 
     for team_a_tuple in combinations(members, team_size):
         team_a = list(team_a_tuple)
@@ -42,25 +43,30 @@ def build_balanced_teams(
         team_b_score_sum = compute_team_score_sum(team_b, member_scores)
         score_diff = abs(team_a_score_sum - team_b_score_sum)
         score_balance_key = _score_distribution_key(team_a, team_b, member_scores)
-        sort_key = (score_diff, score_balance_key, tuple(team_a))
+        sort_key = (score_diff, score_balance_key)
 
         if best_sort_key is None or sort_key < best_sort_key:
             best_sort_key = sort_key
-            best_result = BalancedTeamResult(
-                team_a=team_a,
-                team_b=team_b,
-                score_diff=score_diff,
-                reason=(
-                    "코드 기반 조합 탐색으로 모든 Hard Constraint를 만족하는 팀을 생성했습니다. "
-                    f"team_a_score_sum={team_a_score_sum}, team_b_score_sum={team_b_score_sum}, "
-                    f"score_diff={score_diff}"
-                ),
+            best_results = []
+
+        if sort_key == best_sort_key:
+            best_results.append(
+                BalancedTeamResult(
+                    team_a=team_a,
+                    team_b=team_b,
+                    score_diff=score_diff,
+                    reason=(
+                        "코드 기반 조합 탐색으로 모든 Hard Constraint를 만족하는 팀을 생성했습니다. "
+                        f"team_a_score_sum={team_a_score_sum}, team_b_score_sum={team_b_score_sum}, "
+                        f"score_diff={score_diff}"
+                    ),
+                )
             )
 
-    if best_result is None:
+    if not best_results:
         raise ValueError("유효한 팀 조합을 찾을 수 없습니다.")
 
-    return best_result
+    return random.choice(best_results)
 
 
 def _score_distribution_key(
