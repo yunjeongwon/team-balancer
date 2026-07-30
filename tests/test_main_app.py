@@ -2,6 +2,7 @@ import streamlit as st
 from streamlit.testing.v1 import AppTest
 
 import app.graph.builder as builder_mod
+import app.graph.nodes.score_fetch_node as score_fetch_mod
 from app.constants import PLACEHOLDER_MEMBER
 from app.schemas.evaluation_schema import EvaluationSchema
 from app.schemas.team_schema import TeamSchema
@@ -84,9 +85,20 @@ def test_generated_result_shows_member_scores_and_team_totals(fake_llm):
     rendered = at.chat_message[-1].markdown[0].value
     assert "🔵 블루팀 (총점: 3)" in rendered
     assert "🟡 골드팀 (총점: 3)" in rendered
-    assert "a(3)" in rendered
-    assert "b(3)" in rendered
+    assert "a(3 · 기본)" in rendered
+    assert "b(3 · 기본)" in rendered
     assert "3점" not in rendered
+
+
+def test_generated_result_distinguishes_registered_and_default_scores(fake_llm, monkeypatch):
+    monkeypatch.setattr(score_fetch_mod, "load_scores", lambda: {"a": 3})
+
+    at = _app()
+    _generate(at, "a b")
+
+    rendered = at.chat_message[-1].markdown[0].value
+    assert "a(3 · 등록)" in rendered
+    assert "b(3 · 기본)" in rendered
 
 
 def test_confirm_adds_scoreless_result_without_changing_previous_message(fake_llm):
@@ -99,7 +111,7 @@ def test_confirm_adds_scoreless_result_without_changing_previous_message(fake_ll
 
     assert at.chat_message[-2].markdown[0].value == scored_result
     assert "총점: 3" in at.chat_message[-2].markdown[0].value
-    assert "a(3)" in at.chat_message[-2].markdown[0].value
+    assert "a(3 · 기본)" in at.chat_message[-2].markdown[0].value
 
     rendered = at.chat_message[-1].markdown[0].value
     assert "총점" not in rendered

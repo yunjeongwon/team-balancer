@@ -15,6 +15,7 @@ class TeamState(TypedDict):
 
     # Data
     member_scores: dict[str, int]
+    member_score_sources: dict[str, Literal["registered", "default"]]
     score_source: str  # (확장: DB / API 구분)
 
     # Output

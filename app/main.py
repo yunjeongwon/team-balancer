@@ -55,8 +55,15 @@ def build_team_message(values: dict, include_scores: bool = True) -> str:
 
     if include_scores:
         member_scores = values["member_scores"]
-        team_a = " ".join(_format_member_with_score(member, member_scores) for member in team_a_members)
-        team_b = " ".join(_format_member_with_score(member, member_scores) for member in team_b_members)
+        member_score_sources = values["member_score_sources"]
+        team_a = " ".join(
+            _format_member_with_score(member, member_scores, member_score_sources)
+            for member in team_a_members
+        )
+        team_b = " ".join(
+            _format_member_with_score(member, member_scores, member_score_sources)
+            for member in team_b_members
+        )
         team_a_title = f"🔵 블루팀 (총점: {compute_team_score_sum(team_a_members, member_scores)})"
         team_b_title = f"🟡 골드팀 (총점: {compute_team_score_sum(team_b_members, member_scores)})"
     else:
@@ -73,8 +80,13 @@ def build_team_message(values: dict, include_scores: bool = True) -> str:
     return message
 
 
-def _format_member_with_score(member: str, member_scores: dict[str, int]) -> str:
-    return f"{member}({member_scores[member]})"
+def _format_member_with_score(
+    member: str,
+    member_scores: dict[str, int],
+    member_score_sources: dict[str, str],
+) -> str:
+    source_label = "등록" if member_score_sources[member] == "registered" else "기본"
+    return f"{member}({member_scores[member]} · {source_label})"
 
 
 app = get_app(graph_code_stamp(), _use_gpt())
