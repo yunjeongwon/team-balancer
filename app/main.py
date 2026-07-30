@@ -49,6 +49,39 @@ def graph_code_stamp() -> tuple[tuple[str, int], ...]:
     )
 
 
+def build_graph_input(team_request: str) -> dict:
+    parsed_request = parse_team_request(team_request)
+    return {
+        "members_input": parsed_request["members_input"],
+        "must_link_groups_input": parsed_request["must_link_groups_input"],
+        "cannot_link_groups_input": parsed_request["cannot_link_groups_input"],
+        "default_score": load_settings()["default_score"],
+    }
+
+
+def get_original_team_request(messages: list[dict]) -> str | None:
+    """현재 세션이 보관한 최초 팀 구성 요청을 찾는다.
+
+    InMemorySaver는 그래프 캐시가 재생성되면 비워질 수 있지만, Streamlit
+    세션의 대화 기록은 남아 있을 수 있다. 이전 버전 세션도 복구할 수 있도록
+    별도 세션 키가 없을 때는 대화 기록을 보조 수단으로 사용한다.
+    """
+    saved_request = st.session_state.get("team_request")
+    if isinstance(saved_request, str) and saved_request.strip():
+        return saved_request
+
+    return next(
+        (
+            message["content"]
+            for message in messages
+            if message.get("role") == "user"
+            and isinstance(message.get("content"), str)
+            and "팀원" in message["content"]
+        ),
+        None,
+    )
+
+
 def build_team_message(values: dict, include_scores: bool = True) -> str:
     team_a_members = [m for m in values["team_a"] if m != PLACEHOLDER_MEMBER]
     team_b_members = [m for m in values["team_b"] if m != PLACEHOLDER_MEMBER]
@@ -117,17 +150,11 @@ input_container = st.container()
 with input_container:
     team_request_input = st.text_area(
         "팀 구성 입력",
-        placeholder="""팀원:
-강병의
-김성인
-박규원
-박종민
+        placeholder="""팀원: 강병의 김성인 박규원 박종민
 
-묶음:
-박규원-박종민
+분리: 박종민/김성인
 
-분리:
-박종민/김성인""",
+묶음: 박규원-박종민""",
         height=320,
     )
     team_create_button_clicked = st.button("팀 생성")
@@ -156,7 +183,7 @@ if should_generate:
     else:
         msg = None
         try:
-            parsed_request = parse_team_request(team_request_input)
+            initial_graph_input = build_graph_input(team_request_input)
 
             st.session_state.thread_id = str(uuid.uuid4())
             configure_run_logging(st.session_state.thread_id)
@@ -165,6 +192,7 @@ if should_generate:
                 "role": "user",
                 "content": team_request_input,
             })
+            st.session_state.team_request = team_request_input
 
             msg = st.info("팀 생성 중 ..")
 
@@ -175,12 +203,7 @@ if should_generate:
             }
 
             app.invoke(
-                {
-                    "members_input": parsed_request["members_input"],
-                    "must_link_groups_input": parsed_request["must_link_groups_input"],
-                    "cannot_link_groups_input": parsed_request["cannot_link_groups_input"],
-                    "default_score": load_settings()["default_score"],
-                },
+                initial_graph_input,
                 config=config,
             )
 
@@ -248,6 +271,21 @@ if st.session_state.awaiting_approval:
 
         try:
             configure_run_logging(st.session_state.thread_id)
+
+            # 그래프 캐시가 새로 만들어진 경우 InMemorySaver의 체크포인트는
+            # 사라질 수 있다. 그 상태에서 Command(resume)를 호출하면 새 실행이
+            # input 노드부터 시작해 members_input KeyError가 난다.
+            snapshot = app.get_state(st.session_state.config)
+            if "members_input" not in snapshot.values:
+                original_request = get_original_team_request(st.session_state.messages)
+                if not original_request:
+                    raise RuntimeError("기존 팀 구성 입력을 찾을 수 없습니다.")
+
+                app.invoke(
+                    build_graph_input(original_request),
+                    config=st.session_state.config,
+                )
+
             app.invoke(
                 Command(resume=feedback_input),
                 config=st.session_state.config,

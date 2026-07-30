@@ -176,6 +176,21 @@ def test_feedback_reaches_the_prompt_as_plain_text_not_a_dict(fake_llm):
     assert "{'feedback'" not in retry_prompt_text
 
 
+def test_feedback_recovers_when_graph_cache_loses_its_checkpoint(fake_llm):
+    at = _app()
+    _generate(at, "a b")
+
+    # 배포 갱신 등으로 캐시된 그래프가 교체되면 InMemorySaver의 체크포인트는
+    # 사라져도 Streamlit 세션 상태는 남아 있을 수 있다.
+    st.cache_resource.clear()
+
+    at.chat_input[0].set_value("a와 b는 같은 팀으로").run()
+
+    assert at.session_state["awaiting_approval"] is True
+    retry_prompt_text = fake_llm.team_prompts[-1][-1].content
+    assert "a와 b는 같은 팀으로" in retry_prompt_text
+
+
 class _QuotaFakeLLM:
     """Gemini(use_gpt=False)는 할당량 초과로 실패, GPT(use_gpt=True)는 성공."""
 
