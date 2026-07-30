@@ -2,6 +2,7 @@ import logging
 
 from app.graph.state import TeamState
 from app.schemas.evaluation_schema import EvaluationSchema
+from app.utils.build_balanced_teams import build_balanced_teams
 from app.utils.compute_team_score_sum import compute_team_score_sum
 from app.utils.build_evaluator_prompt import build_evaluator_prompt
 from app.utils.group_members_by_score import group_members_by_score
@@ -47,6 +48,46 @@ def evaluator_node(state: TeamState, structured_llm) -> TeamState:
 
     team_a_score_sum = compute_team_score_sum(team_a, member_scores)
     team_b_score_sum = compute_team_score_sum(team_b, member_scores)
+    score_diff = abs(team_a_score_sum - team_b_score_sum)
+    optimal_result = build_balanced_teams(
+        members=members,
+        member_scores=member_scores,
+        must_link_groups=must_link_groups,
+        cannot_link_groups=cannot_link_groups,
+    )
+
+    if score_diff > optimal_result.score_diff:
+        reason = (
+            f"점수 차이 불균형: 현재 {score_diff}점 차이지만, "
+            f"제약 조건을 만족하는 최소 점수 차이는 {optimal_result.score_diff}점입니다."
+        )
+        message = f"'{evaluation_count + 1}번째' 검증 완료"
+        logger.info(message)
+        logger.info(reason)
+
+        if evaluation_count >= 1:
+            fallback_reason = (
+                f"{reason} 재생성 한도에 도달해 코드 기반 최적 균형 조합으로 대체했습니다."
+            )
+            logger.info(fallback_reason)
+            return {
+                "messages": [message],
+                "team_a": optimal_result.team_a,
+                "team_b": optimal_result.team_b,
+                "score_diff": optimal_result.score_diff,
+                "output_reason": optimal_result.reason,
+                "evaluation_status": "PASS",
+                "evaluation_reason": fallback_reason,
+                "evaluation_count": evaluation_count + 1,
+            }
+
+        return {
+            "messages": [message],
+            "evaluation_status": "FAIL",
+            "evaluation_reason": reason,
+            "evaluation_count": evaluation_count + 1,
+        }
+
     logger.info(f"team_a_score_sum={team_a_score_sum} team_b_score_sum={team_b_score_sum}")
 
     prompt = build_evaluator_prompt(
