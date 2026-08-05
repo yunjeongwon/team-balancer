@@ -191,24 +191,32 @@ def test_feedback_recovers_when_graph_cache_loses_its_checkpoint(fake_llm):
     assert "a와 b는 같은 팀으로" in retry_prompt_text
 
 
-class _QuotaFakeLLM:
-    """Gemini(use_gpt=False)는 할당량 초과로 실패, GPT(use_gpt=True)는 성공."""
+class _FallbackFakeLLM:
+    """OmniRoute/Gemini 실패 뒤 GPT에서만 성공하는 모델 stub."""
 
-    def __init__(self, use_gpt):
-        self.use_gpt = use_gpt
+    def __init__(self, model_route, failed_routes):
+        self.model_route = model_route
+        self.failed_routes = failed_routes
 
     def with_structured_output(self, schema):
         return self
 
     def invoke(self, prompt):
-        if not self.use_gpt:
-            raise RuntimeError("simulated quota exceeded")
+        if self.model_route in self.failed_routes:
+            raise RuntimeError(f"simulated {self.model_route} failure")
         return EvaluationSchema(status="PASS", reason="gpt ok")
 
 
-def _app_with_failing_gemini(monkeypatch):
+def _app_with_fallbacks(monkeypatch, failed_routes):
     st.cache_resource.clear()
-    monkeypatch.setattr(builder_mod, "get_model", lambda use_gpt=False: _QuotaFakeLLM(use_gpt))
+    monkeypatch.setenv("OMNIROUTE_BASE_URL", "http://localhost:20128/v1")
+    monkeypatch.setenv("OMNIROUTE_API_KEY", "test-key")
+    monkeypatch.delenv("USE_GPT", raising=False)
+    monkeypatch.setattr(
+        builder_mod,
+        "get_model",
+        lambda model_route=None: _FallbackFakeLLM(model_route, failed_routes),
+    )
 
     at = AppTest.from_file("app/main.py")
     at.session_state["authenticated"] = True
@@ -216,25 +224,24 @@ def _app_with_failing_gemini(monkeypatch):
     return at
 
 
-def test_switch_button_renders_on_generation_error(monkeypatch):
-    at = _app_with_failing_gemini(monkeypatch)
+def test_omniroute_failure_automatically_falls_back_through_gemini_to_gpt(monkeypatch):
+    at = _app_with_fallbacks(monkeypatch, {"omniroute", "gemini"})
 
     _generate_structured(at, "팀원:\na\nb\nc\nd\n")
 
-    assert "GPT로 전환하고 재시도" in [b.label for b in at.button]
-
-
-def test_switch_button_click_switches_to_gpt_and_regenerates(monkeypatch):
-    at = _app_with_failing_gemini(monkeypatch)
-
-    _generate_structured(at, "팀원:\na\nb\nc\nd\n")
-
-    switch_index = [b.label for b in at.button].index("GPT로 전환하고 재시도")
-    at.button[switch_index].click().run()
-
-    assert at.session_state["use_gpt"] is True
+    assert at.session_state["model_route"] == "gpt"
     assert at.session_state["awaiting_approval"] is True
     assert "GPT로 전환하고 재시도" not in [b.label for b in at.button]
+
+
+def test_shows_error_only_after_gpt_fallback_also_fails(monkeypatch):
+    at = _app_with_fallbacks(monkeypatch, {"omniroute", "gemini", "gpt"})
+
+    _generate_structured(at, "팀원:\na\nb\nc\nd\n")
+
+    assert at.session_state["model_route"] == "gpt"
+    assert at.session_state["awaiting_approval"] is False
+    assert any("순차 재시도가 모두 실패했습니다" in error.value for error in at.error)
 
 
 def test_apptest_main_does_not_reinject_github_token(fake_llm):

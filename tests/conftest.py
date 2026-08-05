@@ -48,7 +48,7 @@ def fake_llm(monkeypatch):
     st.cache_resource.clear()
 
     llm = RecordingFakeLLM()
-    monkeypatch.setattr(builder_mod, "get_model", lambda use_gpt: llm)
+    monkeypatch.setattr(builder_mod, "get_model", lambda model_route=None: llm)
     return llm
 
 

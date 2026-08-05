@@ -11,6 +11,7 @@ from app.auth import require_auth
 from app.constants import PLACEHOLDER_MEMBER
 from app.exceptions.validation import ValidationError
 from app.graph.builder import graph_builder
+from app.llm.model import get_default_model_route
 from app.logging_config import configure_run_logging
 from app.utils.compute_team_score_sum import compute_team_score_sum
 from app.utils.load_scores import load_settings
@@ -22,12 +23,29 @@ import uuid
 load_dotenv()
 
 @st.cache_resource
-def get_app(graph_code_stamp: tuple[tuple[str, int], ...], use_gpt: bool):
-    return graph_builder(use_gpt)
+def get_app(graph_code_stamp: tuple[tuple[str, int], ...], model_route: str):
+    return graph_builder(model_route)
 
 
-def _use_gpt() -> bool:
-    return os.environ.get("USE_GPT") == "1" or st.session_state.get("use_gpt", False)
+MODEL_ROUTE_LABELS = {
+    "omniroute": "OmniRoute",
+    "gemini": "Gemini 3.5 Flash-Lite",
+    "gpt": "GPT",
+}
+
+
+def _model_route() -> str:
+    if os.environ.get("USE_GPT") == "1":
+        return "gpt"
+    return st.session_state.get("model_route", get_default_model_route())
+
+
+def _next_model_route(model_route: str) -> str | None:
+    if model_route == "omniroute":
+        return "gemini"
+    if model_route == "gemini":
+        return "gpt"
+    return None
 
 
 def graph_code_stamp() -> tuple[tuple[str, int], ...]:
@@ -139,8 +157,6 @@ def _format_member_with_score(
     return f"{member}({score} · {source_label})"
 
 
-app = get_app(graph_code_stamp(), _use_gpt())
-
 require_auth()
 
 st.title("Team Balancer")
@@ -171,7 +187,18 @@ if "messages" not in st.session_state:
 if "generation_error" not in st.session_state:
     st.session_state.generation_error = None
 
-should_generate = team_create_button_clicked or st.session_state.pop("pending_generate", False)
+is_retry = st.session_state.pop("pending_generate", False)
+should_generate = team_create_button_clicked or is_retry
+
+if team_create_button_clicked:
+    # 새 요청은 항상 기본 경로(OmniRoute가 설정됐다면 OmniRoute)부터 시작한다.
+    st.session_state.model_route = get_default_model_route()
+
+app = get_app(graph_code_stamp(), _model_route())
+
+fallback_notice = st.session_state.pop("fallback_notice", None)
+if fallback_notice:
+    st.info(fallback_notice)
 
 if should_generate:
     st.session_state.awaiting_approval = False
@@ -188,11 +215,12 @@ if should_generate:
             st.session_state.thread_id = str(uuid.uuid4())
             configure_run_logging(st.session_state.thread_id)
 
-            st.session_state.messages.append({
-                "role": "user",
-                "content": team_request_input,
-            })
-            st.session_state.team_request = team_request_input
+            if not is_retry:
+                st.session_state.messages.append({
+                    "role": "user",
+                    "content": team_request_input,
+                })
+                st.session_state.team_request = team_request_input
 
             msg = st.info("팀 생성 중 ..")
 
@@ -227,16 +255,21 @@ if should_generate:
         except Exception as e:
             if msg:
                 msg.empty()
+            current_route = _model_route()
+            next_route = _next_model_route(current_route)
+            if next_route:
+                st.session_state.model_route = next_route
+                st.session_state.pending_generate = True
+                st.session_state.fallback_notice = (
+                    f"{MODEL_ROUTE_LABELS[current_route]} 호출에 실패해 "
+                    f"{MODEL_ROUTE_LABELS[next_route]}로 자동 재시도합니다."
+                )
+                st.rerun()
             st.session_state.generation_error = e
 
 if st.session_state.get("generation_error") is not None:
-    st.error("Gemini 사용량 한도 등 오류가 발생했습니다. GPT로 전환해 다시 시도해보세요.")
+    st.error("OmniRoute, Gemini, GPT 순차 재시도가 모두 실패했습니다. 잠시 후 다시 시도해주세요.")
     st.exception(st.session_state.generation_error)
-
-    if not _use_gpt() and st.button("GPT로 전환하고 재시도"):
-        st.session_state.use_gpt = True
-        st.session_state.pending_generate = True
-        st.rerun()
 
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):

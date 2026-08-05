@@ -365,9 +365,16 @@ pip install -r requirements.txt
 ```env
 GOOGLE_API_KEY=your_key
 OPENAI_API_KEY=your_key   # GPT 전환 시 필요
+# 선택: OmniRoute를 기본 게이트웨이로 사용
+OMNIROUTE_BASE_URL=https://llm.example.com/v1
+OMNIROUTE_API_KEY=your-omniroute-endpoint-key
+# OmniRoute에서 만든 "무료 모델 우선 → GPT" Combo의 모델 ID. 기본값은 auto
+OMNIROUTE_MODEL=team-balancer-free-first
 ```
 
-기본은 Gemini입니다. 팀 생성 중 Gemini 오류(무료티어 하루 할당량 초과 등)가 나면 화면에 **"GPT로 전환하고 재시도"** 버튼이 나타나고, 누르면 해당 세션에서 GPT로 전환해 자동으로 다시 생성합니다. 앱을 처음부터 GPT로 띄우려면 `USE_GPT=1`을 설정하세요.
+기본은 Gemini입니다. `OMNIROUTE_BASE_URL`과 `OMNIROUTE_API_KEY`를 함께 설정하면 **OmniRoute → Gemini 3.5 Flash-Lite → 직접 OpenAI GPT** 순서로 자동 재시도합니다. OmniRoute Dashboard에서는 무료·구조화 출력 호환 모델만 우선 연결해 두면 됩니다. GPT는 OmniRoute의 Combo가 아니라 앱의 마지막 직접 폴백으로 사용하므로 `OPENAI_API_KEY`가 필요합니다.
+
+OmniRoute가 설정되지 않은 환경에서는 **Gemini → 직접 OpenAI GPT** 순서로 자동 재시도합니다. 세 경로가 모두 실패할 때만 오류를 표시합니다. 앱을 처음부터 직접 GPT로 띄우려면 `USE_GPT=1`을 설정하세요.
 
 ### 4. 실행
 
@@ -394,7 +401,10 @@ Streamlit 공식 무료 호스팅을 사용합니다. (Vercel은 서버리스 �
 
 ```toml
 GOOGLE_API_KEY  = "..."
-OPENAI_API_KEY  = "..."        # USE_GPT=1 로 GPT 전환 시에만 필요
+OPENAI_API_KEY  = "..."        # 직접 GPT 비상 전환 / USE_GPT=1 시 필요
+OMNIROUTE_BASE_URL = "https://llm.example.com/v1" # 선택: 외부 OmniRoute 서버
+OMNIROUTE_API_KEY  = "..."     # Dashboard → Endpoints에서 발급한 앱 전용 키
+OMNIROUTE_MODEL    = "auto"     # 선택: 기본값 auto, OmniRoute 내부 무료 모델 라우팅용
 APP_PASSWORD    = "공유할 비밀번호"
 GITHUB_TOKEN    = "..."
 ```
@@ -405,7 +415,9 @@ GITHUB_TOKEN    = "..."
 
 > `APP_PASSWORD`는 로그인 게이트용 공유 비밀번호입니다. 접근을 허용할 사람에게만 알려주세요.
 
-> Gemini 오류(할당량 초과 등) 시 앱 화면의 **"GPT로 전환하고 재시도"** 버튼으로 그 세션에서 GPT(`OPENAI_API_KEY`)로 전환할 수 있습니다. 세션 단위라 앱이 재시작되면 다시 Gemini로 돌아갑니다. 항상 GPT로 띄우려면 `USE_GPT = "1"` 한 줄을 Secrets에 추가하세요.
+> Streamlit Community Cloud는 OmniRoute를 함께 실행할 수 없으므로, OmniRoute는 별도 상시 서버(예: Docker가 실행되는 VPS)에 배포하고 HTTPS로 공개해야 합니다. `OMNIROUTE_BASE_URL`에는 반드시 `/v1`까지 포함한 그 주소를 넣으세요. 로컬 `http://localhost:20128/v1`은 로컬 실행 때만 사용할 수 있습니다.
+
+> OmniRoute 사용 시에도 `OPENAI_API_KEY`는 필요합니다. 앱은 OmniRoute 실패 시 Gemini를, Gemini도 실패하면 직접 OpenAI GPT를 자동으로 호출합니다. 항상 직접 GPT로 띄우려면 `USE_GPT = "1"`을 추가하세요.
 
 ### 3. 점수 갱신
 
