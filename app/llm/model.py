@@ -5,5 +5,5 @@ from langchain.chat_models import init_chat_model
 def get_model(use_gpt: bool = False):
     # 기본은 Gemini. USE_GPT=1 또는 세션 전환 시 GPT 사용.
     if use_gpt:
-        return init_chat_model(model="gpt-5-mini", model_provider="openai")
-    return init_chat_model(model="gemini-3.1-flash-lite", model_provider="google_genai")
+        return init_chat_model(model="gpt-5.6-luna", model_provider="openai")
+    return init_chat_model(model="gemini-3.5-flash-lite", model_provider="google_genai")

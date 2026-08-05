@@ -103,7 +103,7 @@ PYTHONPATH=. uv run streamlit run app/main.py
 |---|---|
 | Language | Python 3.11+ |
 | AI Workflow | LangGraph |
-| LLM | GPT-5-nano, Gemini-2.5-flash-lite |
+| LLM | GPT-5.6 Luna, Gemini-3.5 Flash-Lite |
 | Validation | Pydantic |
 | State Management | TypedDict |
 | UI | Streamlit |

@@ -16,7 +16,7 @@ def test_get_model_uses_gemini_by_default(monkeypatch):
 
     model_mod.get_model(use_gpt=False)
 
-    assert calls[-1] == {"model": "gemini-3.1-flash-lite", "model_provider": "google_genai"}
+    assert calls[-1] == {"model": "gemini-3.5-flash-lite", "model_provider": "google_genai"}
 
 
 def test_get_model_uses_gpt_when_use_gpt_true(monkeypatch):
@@ -26,4 +26,4 @@ def test_get_model_uses_gpt_when_use_gpt_true(monkeypatch):
 
     model_mod.get_model(use_gpt=True)
 
-    assert calls[-1] == {"model": "gpt-5-mini", "model_provider": "openai"}
+    assert calls[-1] == {"model": "gpt-5.6-luna", "model_provider": "openai"}
