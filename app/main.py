@@ -159,6 +159,28 @@ def _format_member_with_score(
 
 require_auth()
 
+# 사용자 메시지는 오른쪽, 어시스턴트 메시지는 왼쪽에 배치한다.
+st.markdown(
+    """
+    <style>
+    [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
+        flex-direction: row-reverse;
+        text-align: right;
+        width: fit-content;
+        max-width: 80%;
+        margin-left: auto;
+        background-color: rgba(128, 128, 128, 0.15);
+        border-radius: 0.75rem;
+        padding: 0.5rem 0.75rem;
+    }
+    [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"]) {
+        max-width: 80%;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 st.title("Team Balancer")
 
 input_container = st.container()
@@ -186,6 +208,9 @@ if "messages" not in st.session_state:
 
 if "generation_error" not in st.session_state:
     st.session_state.generation_error = None
+
+if "generation_count" not in st.session_state:
+    st.session_state.generation_count = 0
 
 is_retry = st.session_state.pop("pending_generate", False)
 should_generate = team_create_button_clicked or is_retry
@@ -216,6 +241,12 @@ if should_generate:
             configure_run_logging(st.session_state.thread_id)
 
             if not is_retry:
+                st.session_state.generation_count += 1
+                if st.session_state.generation_count >= 2:
+                    st.session_state.messages.append({
+                        "role": "divider",
+                        "content": f"🔄 {st.session_state.generation_count}번째 생성",
+                    })
                 st.session_state.messages.append({
                     "role": "user",
                     "content": team_request_input,
@@ -272,6 +303,11 @@ if st.session_state.get("generation_error") is not None:
     st.exception(st.session_state.generation_error)
 
 for message in st.session_state.messages:
+    if message["role"] == "divider":
+        st.divider()
+        st.caption(message["content"])
+        continue
+
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
