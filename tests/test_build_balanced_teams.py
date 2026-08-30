@@ -1,6 +1,48 @@
 import app.utils.build_balanced_teams as balanced_teams_module
-from app.utils.build_balanced_teams import build_balanced_teams
+from app.utils.build_balanced_teams import _score_distribution_key, build_balanced_teams
 from app.utils.validate_team_result import validate_team_result
+
+_CROWDED_TIER_MEMBERS = [
+    "송준호",
+    "최한성",
+    "권순우",
+    "김대성",
+    "김성인",
+    "변석모",
+    "유원종",
+    "이민재",
+    "조환준",
+    "김동혁",
+    "선윤호",
+    "권진현",
+    "강병의",
+    "김한주",
+    "윤재관",
+    "빵찬",
+    "으게게",
+    "테오",
+]
+_CROWDED_TIER_SCORES = {
+    "송준호": 3,
+    "최한성": 6,
+    "권순우": 2,
+    "김대성": 5,
+    "김성인": 3,
+    "변석모": 4,
+    "유원종": 5,
+    "이민재": 2,
+    "조환준": 3,
+    "김동혁": 4,
+    "선윤호": 7,
+    "권진현": 4,
+    "강병의": 5,
+    "김한주": 7,
+    "윤재관": 4,
+    "빵찬": 3,
+    "으게게": 3,
+    "테오": 3,
+}
+_CROWDED_TIER_CANNOT_LINK = [["조환준", "김성인"], ["이민재", "권순우"]]
 
 
 def test_builds_valid_teams_for_real_world_constraints():
@@ -80,6 +122,66 @@ def test_raises_when_constraints_make_balanced_split_impossible():
         assert "유효한 팀 조합을 찾을 수 없습니다" in str(error)
     else:
         raise AssertionError("Expected impossible constraints to raise ValueError")
+
+
+def test_crowded_score_tier_tolerates_uneven_headcount():
+    scores = {f"m{index}": 3 for index in range(6)}
+    scores.update({"high1": 7, "high2": 7})
+    even = _score_distribution_key(
+        ["m0", "m1", "m2", "high1"], ["m3", "m4", "m5", "high2"], scores
+    )
+    uneven = _score_distribution_key(
+        ["m0", "m1", "m2", "m3", "high1"], ["m4", "m5", "high2"], scores
+    )
+    assert even == uneven, "6명이 몰린 점수대는 3:3과 4:2를 동등하게 취급해야 한다"
+
+    tier_split = _score_distribution_key(
+        ["m0", "m1", "m2", "high1", "high2"], ["m3", "m4", "m5"], scores
+    )
+    assert tier_split > even, "2명뿐인 점수대는 여전히 1:1로 갈려야 한다"
+
+
+def test_crowded_tier_allowance_widens_candidates_without_breaking_constraints(
+    monkeypatch,
+):
+    captured = []
+
+    def capture(candidates):
+        captured.append(candidates)
+        return candidates[0]
+
+    monkeypatch.setattr(balanced_teams_module.random, "choice", capture)
+
+    build_balanced_teams(
+        members=_CROWDED_TIER_MEMBERS,
+        member_scores=_CROWDED_TIER_SCORES,
+        must_link_groups=[],
+        cannot_link_groups=_CROWDED_TIER_CANNOT_LINK,
+    )
+
+    candidates = captured[0]
+    three_point_members = {
+        member for member, score in _CROWDED_TIER_SCORES.items() if score == 3
+    }
+    arrangements = {
+        frozenset(set(candidate.team_a) & three_point_members)
+        for candidate in candidates
+    }
+    # 3점층을 3:3으로 못박으면 12가지가 상한이었다.
+    assert len(arrangements) > 12
+
+    for candidate in candidates:
+        assert candidate.score_diff <= 1
+        assert len(candidate.team_a) == len(candidate.team_b) == 9
+        assert ("선윤호" in candidate.team_a) != ("김한주" in candidate.team_a)
+        validation = validate_team_result(
+            members=_CROWDED_TIER_MEMBERS,
+            team_a=candidate.team_a,
+            team_b=candidate.team_b,
+            must_link_groups=[],
+            cannot_link_groups=_CROWDED_TIER_CANNOT_LINK,
+        )
+        assert validation.status == "PASS"
 
 
 def test_randomly_selects_among_equally_optimal_teams(monkeypatch):

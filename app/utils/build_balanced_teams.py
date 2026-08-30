@@ -5,6 +5,11 @@ import random
 from app.utils.compute_team_score_sum import compute_team_score_sum
 from app.utils.validate_team_result import validate_team_result
 
+# 인원이 많이 몰린 점수대는 실력이 비슷한 사람들이라 인원 수가 한두 명 어긋나도
+# 균형에 영향이 적다. 그 층의 "정확히 반반" 강제를 풀어 조합 다양성을 확보한다.
+CROWDED_SCORE_TIER_SIZE = 4
+CROWDED_TIER_COUNT_ALLOWANCE = 2
+
 
 @dataclass(frozen=True)
 class BalancedTeamResult:
@@ -78,8 +83,14 @@ def _score_distribution_key(
     differences = []
 
     for score in score_values:
+        tier_size = sum(1 for value in member_scores.values() if value == score)
+        allowance = (
+            CROWDED_TIER_COUNT_ALLOWANCE
+            if tier_size >= CROWDED_SCORE_TIER_SIZE
+            else 0
+        )
         team_a_count = sum(1 for member in team_a if member_scores[member] == score)
         team_b_count = sum(1 for member in team_b if member_scores[member] == score)
-        differences.append(abs(team_a_count - team_b_count))
+        differences.append(max(abs(team_a_count - team_b_count) - allowance, 0))
 
     return tuple(differences)
