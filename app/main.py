@@ -28,8 +28,8 @@ def get_app(graph_code_stamp: tuple[tuple[str, int], ...], model_route: str):
 
 
 MODEL_ROUTE_LABELS = {
-    "omniroute": "OmniRoute",
-    "gemini": "Gemini 3.5 Flash-Lite",
+    "gemini": "Gemini 3.6 Flash",
+    "gemini_lite": "Gemini 3.5 Flash-Lite",
     "gpt": "GPT",
 }
 
@@ -41,9 +41,9 @@ def _model_route() -> str:
 
 
 def _next_model_route(model_route: str) -> str | None:
-    if model_route == "omniroute":
-        return "gemini"
     if model_route == "gemini":
+        return "gemini_lite"
+    if model_route == "gemini_lite":
         return "gpt"
     return None
 
@@ -237,7 +237,7 @@ is_retry = st.session_state.pop("pending_generate", False)
 should_generate = team_create_button_clicked or is_retry
 
 if team_create_button_clicked:
-    # 새 요청은 항상 기본 경로(OmniRoute가 설정됐다면 OmniRoute)부터 시작한다.
+    # 새 요청은 항상 기본 경로(Gemini)부터 시작한다.
     st.session_state.model_route = get_default_model_route()
 
 app = get_app(graph_code_stamp(), _model_route())
@@ -318,7 +318,7 @@ if should_generate:
             st.session_state.generation_error = e
 
 if st.session_state.get("generation_error") is not None:
-    st.error("OmniRoute, Gemini, GPT 순차 재시도가 모두 실패했습니다. 잠시 후 다시 시도해주세요.")
+    st.error("Gemini 3.6 Flash, Gemini 3.5 Flash-Lite, GPT 순차 재시도가 모두 실패했습니다. 잠시 후 다시 시도해주세요.")
     st.exception(st.session_state.generation_error)
 
 if st.session_state.awaiting_approval:

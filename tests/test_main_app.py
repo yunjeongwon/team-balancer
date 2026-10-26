@@ -192,7 +192,7 @@ def test_feedback_recovers_when_graph_cache_loses_its_checkpoint(fake_llm):
 
 
 class _FallbackFakeLLM:
-    """OmniRoute/Gemini 실패 뒤 GPT에서만 성공하는 모델 stub."""
+    """지정한 경로에서만 실패하는 모델 stub."""
 
     def __init__(self, model_route, failed_routes):
         self.model_route = model_route
@@ -209,8 +209,6 @@ class _FallbackFakeLLM:
 
 def _app_with_fallbacks(monkeypatch, failed_routes):
     st.cache_resource.clear()
-    monkeypatch.setenv("OMNIROUTE_BASE_URL", "http://localhost:20128/v1")
-    monkeypatch.setenv("OMNIROUTE_API_KEY", "test-key")
     monkeypatch.delenv("USE_GPT", raising=False)
     monkeypatch.setattr(
         builder_mod,
@@ -224,8 +222,17 @@ def _app_with_fallbacks(monkeypatch, failed_routes):
     return at
 
 
-def test_omniroute_failure_automatically_falls_back_through_gemini_to_gpt(monkeypatch):
-    at = _app_with_fallbacks(monkeypatch, {"omniroute", "gemini"})
+def test_gemini_failure_falls_back_to_gemini_lite(monkeypatch):
+    at = _app_with_fallbacks(monkeypatch, {"gemini"})
+
+    _generate_structured(at, "팀원:\na\nb\nc\nd\n")
+
+    assert at.session_state["model_route"] == "gemini_lite"
+    assert at.session_state["awaiting_approval"] is True
+
+
+def test_both_gemini_failures_fall_back_to_gpt(monkeypatch):
+    at = _app_with_fallbacks(monkeypatch, {"gemini", "gemini_lite"})
 
     _generate_structured(at, "팀원:\na\nb\nc\nd\n")
 
@@ -235,7 +242,7 @@ def test_omniroute_failure_automatically_falls_back_through_gemini_to_gpt(monkey
 
 
 def test_shows_error_only_after_gpt_fallback_also_fails(monkeypatch):
-    at = _app_with_fallbacks(monkeypatch, {"omniroute", "gemini", "gpt"})
+    at = _app_with_fallbacks(monkeypatch, {"gemini", "gemini_lite", "gpt"})
 
     _generate_structured(at, "팀원:\na\nb\nc\nd\n")
 
