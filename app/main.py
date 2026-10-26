@@ -157,6 +157,27 @@ def _format_member_with_score(
     return f"{member}({score} · {source_label})"
 
 
+def render_message(message: dict) -> None:
+    if message["role"] == "divider":
+        st.divider()
+        st.caption(message["content"])
+        return
+
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+
+def append_and_render(role: str, content: str) -> None:
+    """메시지를 기록하고 그 자리에서 바로 그린다.
+
+    기록만 하면 스크립트가 끝까지 실행된 뒤에야 화면에 나타난다. 팀 생성은
+    수 초가 걸리므로, 사용자 입력이 먼저 보이도록 즉시 렌더한다.
+    """
+    message = {"role": role, "content": content}
+    st.session_state.messages.append(message)
+    render_message(message)
+
+
 require_auth()
 
 # 사용자 메시지는 오른쪽, 어시스턴트 메시지는 왼쪽에 배치한다.
@@ -225,6 +246,10 @@ fallback_notice = st.session_state.pop("fallback_notice", None)
 if fallback_notice:
     st.info(fallback_notice)
 
+# 새로 추가되는 메시지가 이 아래에 이어 붙도록, 기존 기록을 먼저 그린다.
+for message in st.session_state.messages:
+    render_message(message)
+
 if should_generate:
     st.session_state.awaiting_approval = False
     st.session_state.config = None
@@ -243,14 +268,11 @@ if should_generate:
             if not is_retry:
                 st.session_state.generation_count += 1
                 if st.session_state.generation_count >= 2:
-                    st.session_state.messages.append({
-                        "role": "divider",
-                        "content": f"🔄 {st.session_state.generation_count}번째 생성",
-                    })
-                st.session_state.messages.append({
-                    "role": "user",
-                    "content": team_request_input,
-                })
+                    append_and_render(
+                        "divider",
+                        f"🔄 {st.session_state.generation_count}번째 생성",
+                    )
+                append_and_render("user", team_request_input)
                 st.session_state.team_request = team_request_input
 
             msg = st.info("팀 생성 중 ..")
@@ -273,10 +295,7 @@ if should_generate:
                 st.session_state.config = config
 
                 values = snapshot.values
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": build_team_message(values),
-                })
+                append_and_render("assistant", build_team_message(values))
 
             msg.empty()
         except ValidationError as e:
@@ -301,15 +320,6 @@ if should_generate:
 if st.session_state.get("generation_error") is not None:
     st.error("OmniRoute, Gemini, GPT 순차 재시도가 모두 실패했습니다. 잠시 후 다시 시도해주세요.")
     st.exception(st.session_state.generation_error)
-
-for message in st.session_state.messages:
-    if message["role"] == "divider":
-        st.divider()
-        st.caption(message["content"])
-        continue
-
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
 
 if st.session_state.awaiting_approval:
     msg = st.info("팀 생성 완료. 수정 사항이 있으면 입력해주세요.")
