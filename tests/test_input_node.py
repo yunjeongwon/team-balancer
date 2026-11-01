@@ -1,3 +1,5 @@
+import random
+
 import pytest
 
 from app.constants import PLACEHOLDER_MEMBER
@@ -17,13 +19,16 @@ def test_collapses_repeated_spaces_instead_of_creating_blank_member():
     result = input_node(_state("a  b c"))
 
     assert "" not in result["members"]
-    assert result["members"] == ["a", "b", "c", PLACEHOLDER_MEMBER]
+    assert sorted(result["members"]) == sorted(["a", "b", "c", PLACEHOLDER_MEMBER])
 
 
-def test_even_member_count_is_not_padded():
+def test_even_member_count_is_shuffled_without_padding(monkeypatch):
+    monkeypatch.setattr(random, "shuffle", random.Random(0).shuffle)
+
     result = input_node(_state("a b c d"))
 
-    assert result["members"] == ["a", "b", "c", "d"]
+    assert sorted(result["members"]) == ["a", "b", "c", "d"]
+    assert result["members"] != ["a", "b", "c", "d"]
 
 
 def test_rejects_duplicate_members():

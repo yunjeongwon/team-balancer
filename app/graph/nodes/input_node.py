@@ -1,4 +1,5 @@
 import logging
+import random
 
 from app.constants import PLACEHOLDER_MEMBER
 from app.exceptions.validation import ValidationError
@@ -34,6 +35,9 @@ def input_node(state: TeamState) -> TeamState:
                 raise ValidationError(
                 f"존재하지 않는 팀원이 포함되어 있습니다: {member}"
             )
+
+    # 팀 생성 전에 입력 순서를 한 번 무작위로 섞는다.
+    random.shuffle(members)
 
     message = f"입력 파싱 완료"
     logger.info(message)
